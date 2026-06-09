@@ -672,7 +672,7 @@ if(view==="exceeding"){
       </div>;
     })()}
 
-    <Card style={{marginBottom:12}}>
+    {false&&<Card style={{display:"none"}}>
       <div style={{fontSize:11,color:T.sub,marginBottom:12}}>{viewLabels[view]}</div>
       {view!=="lanes"&&<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
         {SCATTER_CATS.map(cat=>(
@@ -712,7 +712,7 @@ if(view==="exceeding"){
         </div>;
       })()}
       <NavLink text="See port and lane performance trends → Historical" onClick={()=>setPage("history")}/>
-    </Card>
+    </Card>}
 
     {selCarrier&&view!=="lanes"&&(()=>{
       const cd=carriers.find(c=>c.name===selCarrier);
@@ -737,7 +737,11 @@ if(view==="exceeding"){
       </div>;
     })()}
 
-    <Card style={{marginTop:12}}>
+    <div style={{marginTop:18,marginBottom:10,borderTop:"2px solid "+T.border,paddingTop:14}}>
+      <div style={{fontSize:10,fontWeight:700,color:T.sub,textTransform:"uppercase",letterSpacing:"1px"}}>Carrier Scorecard</div>
+      <div style={{fontSize:10,color:T.dim,marginTop:2}}>Rank carriers by risk. Click any row to drill into container detail.</div>
+    </div>
+    <Card style={{marginBottom:0}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
         <div>
           <div style={{fontSize:14,fontWeight:600}}>Carrier Scorecard <span style={{fontSize:10,fontWeight:400,color:T.blue}}>— click any row to see containers</span></div>
@@ -778,6 +782,55 @@ if(view==="exceeding"){
         </table>;
       })()}
       <div style={{fontSize:9,color:T.dim,marginTop:6}}>Carrier scores are for evaluation only. Business relationships and other factors can also influence decisions.</div>
+    </Card>
+
+    <div style={{marginTop:18,marginBottom:10,borderTop:"2px solid "+T.border,paddingTop:14}}>
+      <div style={{fontSize:10,fontWeight:700,color:T.sub,textTransform:"uppercase",letterSpacing:"1px"}}>Why Is This Carrier Expensive?</div>
+      <div style={{fontSize:10,color:T.dim,marginTop:2}}>Origin vs Destination dwell scatter — all 4 charge categories. Bubbles above the reference line are over free period.</div>
+    </div>
+    <Card style={{marginBottom:12}}>
+      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
+        <span style={{fontSize:10,fontWeight:600,color:T.sub,textTransform:"uppercase"}}>View</span>
+        <select value={view} onChange={e=>{setView(e.target.value);setSelCarrier(null);}} style={{border:"1px solid "+T.border,borderRadius:8,padding:"4px 10px",fontSize:10,color:T.text,background:"#fff",cursor:"pointer",outline:"none",fontWeight:600}}>
+          {CARRIER_VIEWS.map(v=><option key={v.id} value={v.id}>{v.label}</option>)}
+        </select>
+        <span style={{fontSize:10,color:T.dim,marginLeft:4}}>{viewLabels[view]}</span>
+      </div>
+      {view!=="lanes"&&<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
+        {SCATTER_CATS.map(cat=>(
+          <div key={cat.id} style={{background:T.card2,borderRadius:10,padding:"10px 12px"}}>
+            <div style={{fontSize:11,fontWeight:700,color:cat.color,marginBottom:6}}>{cat.label}</div>
+            {renderPanel(cat)}
+          </div>
+        ))}
+      </div>}
+      {view==="lanes"&&(()=>{
+        const lanes=selCarrier?BASE.topLanes.filter(l=>l.carriers&&l.carriers.includes(selCarrier)):BASE.topLanes;
+        const oStat=v=>v>5.1?{t:"Over FP",c:T.red}:v>3.5?{t:"Near FP",c:T.amber}:{t:"OK",c:T.green};
+        const dStat=v=>v>6.0?{t:"Over FP",c:T.red}:v>4.0?{t:"Near FP",c:T.amber}:{t:"OK",c:T.green};
+        return <div>
+          <div style={{background:T.amberBg,border:"1px solid "+T.amber+"40",borderRadius:8,padding:"8px 14px",marginBottom:12,borderLeft:"3px solid "+T.amber}}><div style={{fontSize:11,fontWeight:700,color:T.amber}}>🚧 Under active development — data shown is indicative only.</div></div>
+          <table style={{width:"100%",borderCollapse:"separate",borderSpacing:"0 4px",fontSize:10}}>
+            <thead><tr style={{color:T.dim,fontSize:9}}>
+              {["Lane","Carriers","Containers","Avg O.Det","Avg D.Det","Origin Status","Dest Status",""].map(h=><th key={h} style={{padding:"4px 8px",textAlign:["Containers","Avg O.Det","Avg D.Det"].includes(h)?"right":"left",fontWeight:600,textTransform:"uppercase",letterSpacing:"0.4px"}}>{h}</th>)}
+            </tr></thead>
+            <tbody>{lanes.map((l,i)=>{
+              const os=oStat(l.avgODet);const ds=dStat(l.avgDDet);
+              const bothOver=os.c===T.red&&ds.c===T.red;
+              return <tr key={i} style={{background:T.card2,borderLeft:bothOver?"3px solid "+T.red:"3px solid transparent"}}>
+                <td style={{padding:"6px 8px",borderRadius:"6px 0 0 6px",fontFamily:"monospace",fontSize:10,fontWeight:700}}>{l.lane}</td>
+                <td style={{padding:"6px 8px",fontSize:9}}>{(l.carriers||[]).map(c=><span key={c} style={{background:T.blue+"15",color:T.blue,borderRadius:4,padding:"1px 5px",marginRight:3,fontSize:9,fontWeight:600}}>{c}</span>)}</td>
+                <td style={{padding:"6px 8px",textAlign:"right",fontWeight:600}}>{l.containers}</td>
+                <td style={{padding:"6px 8px",textAlign:"right",color:l.avgODet>5.1?T.red:T.text,fontWeight:l.avgODet>5.1?700:400}}>{l.avgODet}d</td>
+                <td style={{padding:"6px 8px",textAlign:"right",color:l.avgDDet>6.0?T.red:T.text,fontWeight:l.avgDDet>6.0?700:400}}>{l.avgDDet}d</td>
+                <td style={{padding:"6px 8px"}}><span style={{background:os.c+"18",color:os.c,borderRadius:6,padding:"2px 8px",fontSize:9,fontWeight:600}}>{os.t}</span></td>
+                <td style={{padding:"6px 8px"}}><span style={{background:ds.c+"18",color:ds.c,borderRadius:6,padding:"2px 8px",fontSize:9,fontWeight:600}}>{ds.t}</span></td>
+                <td style={{padding:"6px 8px",borderRadius:"0 6px 6px 0"}}><span onClick={()=>setPage("surcharges")} style={{cursor:"pointer",color:T.blue,fontSize:9,fontWeight:600}}>Surcharges →</span></td>
+              </tr>;
+            })}</tbody>
+          </table>
+        </div>;
+      })()}
     </Card>
 
     {/* ── RECOMMENDED ACTION ── */}
@@ -1012,7 +1065,26 @@ function OptimizerPage(){
   </div>;
 
   return (<div style={{padding:"20px 28px",width:"100%",boxSizing:"border-box"}}>
-    <SH title="Cost Optimizer" sub="Forecast-based cost prediction + container prioritization planner for resource deployment decisions"/>
+    <SH title="Cost Optimizer" sub="Where should I spend limited effort? Prioritize containers by avoidable cost and deploy resources for maximum impact."/>
+    {/* ── IMPACT SUMMARY ── */}
+    {(()=>{
+      const totalExp=allContainers.reduce((s,c)=>s+c.todayCost,0);
+      const totalBurn=allContainers.reduce((s,c)=>s+c.daily,0);
+      const atRisk=allContainers.filter(c=>c.fpStatus!=="Green").length;
+      const potSavings=allContainers.slice(0,25).reduce((s,c)=>s+c.todayCost,0);
+      return <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:10,marginBottom:16}}>
+        {[
+          {label:"Total Exposure",value:fmt(totalExp),sub:"if no action taken today",color:T.red},
+          {label:"Containers at Risk",value:atRisk,sub:"past or near free period threshold",color:T.amber},
+          {label:"Daily Burn Rate",value:totalBurn>0?fmt(totalBurn)+"/d":"—",sub:"accumulating right now across portfolio",color:T.red},
+          {label:"Potential Savings (Top 25)",value:potSavings>0?fmt(potSavings):"—",sub:"if top 25 containers cleared today",color:T.green},
+        ].map((d,i)=><Card key={i} style={{padding:"14px 16px",borderLeft:"3px solid "+d.color}}>
+          <div style={{fontSize:9,fontWeight:600,color:T.sub,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:4}}>{d.label}</div>
+          <div style={{fontSize:20,fontWeight:800,color:d.color}}>{d.value}</div>
+          <div style={{fontSize:9,color:T.dim,marginTop:2}}>{d.sub}</div>
+        </Card>)}
+      </div>;
+    })()}
     {allContainers.length===0&&<div style={{background:T.greenBg,border:"1px solid "+T.green+"40",borderRadius:8,padding:"10px 14px",marginBottom:14,borderLeft:"3px solid "+T.green}}><div style={{fontSize:12,fontWeight:700,color:T.green}}>✓ No containers currently exceed free period thresholds. Nothing to prioritize.</div></div>}
     {/* FORECAST DATE — global control */}
     <div style={{display:"flex",alignItems:"center",gap:14,padding:"12px 16px",background:T.card2,borderRadius:10,border:"1.5px solid "+T.blue+"50",marginBottom:14}}>
@@ -1091,17 +1163,35 @@ function OptimizerPage(){
     {/* CHARGE BREAKDOWN */}
     <ChartBox title="Split By Charge Type & Location" sub="All 4 charge types compared across origin and destination" h={200} insight={(()=>{const o=chargeData[0];const cats=["Detention","Demurrage","Storage","Combined D&D"].map(k=>({n:k,v:o[k]||0}));const top=cats.reduce((a,b)=>b.v>a.v?b:a);return top.n+" at origin ("+fmt(top.v)+") is the dominant charge type. "+(top.n==="Combined D&D"?"Evaluate whether separate rates would be cheaper in Surcharges tab.":"Focus on reducing origin "+top.n.toLowerCase()+" dwell.");})()}><ResponsiveContainer><BarChart data={chargeData}><CartesianGrid strokeDasharray="3 3" stroke={T.border+"60"}/><XAxis dataKey="side" stroke={T.dim} fontSize={10}/><YAxis stroke={T.dim} fontSize={10} tickFormatter={v=>fmt(v)}/><Tooltip content={<CTip/>}/><Legend formatter={v=><span style={{fontSize:9,color:T.sub}}>{v}</span>}/><Bar dataKey="Detention" fill={T.amber}/><Bar dataKey="Demurrage" fill={T.purple}/><Bar dataKey="Storage" fill={T.green}/><Bar dataKey="Combined D&D" fill={T.red}/></BarChart></ResponsiveContainer></ChartBox>
 
+    {/* ── PRIORITIZATION STRATEGIES ── */}
+    {(()=>{
+      const presets=[
+        {label:"High Savings",icon:"💰",desc:"Highest avoidable cost today",apply:()=>{setAFpStatus("All");setACat("All");setARisk("All");setACostBand("High Impact");setATopN("25");setBFpStatus("Expired");setBCat("All");setBRisk("High");setBCostBand("All");setBTopN("All");}},
+        {label:"High Risk",icon:"🚨",desc:"Expired + High risk only",apply:()=>{setAFpStatus("Expired");setACat("All");setARisk("High");setACostBand("All");setATopN("All");setBFpStatus("Expiring Today");setBCat("All");setBRisk("All");setBCostBand("All");setBTopN("All");}},
+        {label:"Destination Focus",icon:"🎯",desc:"Destination-side containers",apply:()=>{setAFpStatus("All");setACat("Detention");setARisk("All");setACostBand("All");setATopN("All");setBFpStatus("All");setBCat("Demurrage");setBRisk("All");setBCostBand("All");setBTopN("All");}},
+        {label:"Carrier Focus",icon:"🚢",desc:"Filter by carrier to compare",apply:()=>{resetAll();}},
+      ];
+      return <div style={{marginBottom:14}}>
+        <div style={{fontSize:10,fontWeight:700,color:T.sub,textTransform:"uppercase",letterSpacing:"1px",marginBottom:8}}>Prioritization Strategies — Quick Load</div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8}}>
+          {presets.map((p,i)=><button key={i} onClick={p.apply} style={{padding:"10px 12px",borderRadius:8,border:"1px solid "+T.border,background:"#fff",cursor:"pointer",textAlign:"left",transition:"all .15s"}} onMouseEnter={e=>e.currentTarget.style.borderColor=T.blue} onMouseLeave={e=>e.currentTarget.style.borderColor=T.border}>
+            <div style={{fontSize:12}}>{p.icon}</div>
+            <div style={{fontSize:10,fontWeight:700,color:T.text,marginTop:4}}>{p.label}</div>
+            <div style={{fontSize:9,color:T.sub,marginTop:2}}>{p.desc}</div>
+          </button>)}
+        </div>
+      </div>;
+    })()}
     {/* PRIORITIZATION PLANNER — with toggle */}
     <Card style={{marginBottom:14,background:T.actionBg,border:"1px solid "+T.blue+"15",boxShadow:"0 2px 8px rgba(37,99,235,.06)"}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
         <div>
-          <div style={{fontSize:16,fontWeight:700}}>Container Prioritization Planner</div>
+          <div style={{fontSize:16,fontWeight:700}}>Execution List</div>
           <div style={{fontSize:9,color:T.sub}}>
-            {plannerView==="planner"?"Filter independently per group, then compare batches to decide where to deploy resources.":"30-day cost forecast — filter containers to see projected cost accumulation trend."}
+            {plannerView==="planner"?"Configure Group A and B independently, then compare to decide where to deploy resources.":"30-day cost forecast — filter containers to see projected cost accumulation trend."}
           </div>
         </div>
         <div style={{display:"flex",gap:6,alignItems:"center"}}>
-          {/* Toggle */}
           <div style={{display:"flex",background:"#fff",border:"1px solid "+T.border,borderRadius:8,overflow:"hidden"}}>
             {[{id:"forecast",label:"📈 30-Day Forecast"},{id:"planner",label:"⚖ Strategy Planner"}].map(v=>
               <button key={v.id} onClick={()=>setPlannerView(v.id)} style={{padding:"5px 12px",border:"none",background:plannerView===v.id?T.blue+"15":"transparent",color:plannerView===v.id?T.blue:T.sub,fontSize:10,fontWeight:plannerView===v.id?700:400,cursor:"pointer",borderRight:"1px solid "+T.border,transition:"all .15s"}}>
@@ -1333,6 +1423,7 @@ function OptimizerPage(){
 // ═══ MODULE 5: HISTORICAL ═══
 function HistoryPage({setPage,navToSurcharges}){
   const[trendFilter,setTrendFilter]=useState("all");const[portTab,setPortTab]=useState("pol");
+  const[selPort,setSelPort]=useState(null);
   const monthlyCost=useMemo(()=>{if(trendFilter==="all")return BASE.monthlyCost;return BASE.monthlyCost.map(m=>trendFilter==="origin"?{...m,detention:m.oDetention,demurrage:m.oDemurrage,storage:m.oStorage,combined:m.oCombined}:{...m,detention:m.dDetention,demurrage:m.dDemurrage,storage:m.dStorage,combined:m.dCombined});},[trendFilter]);
   const stageData=useMemo(()=>[
     {stage:"Origin Depot",costType:"Detention",avgDays:BASE.stageDays.origin_detention.avg,cost:BASE.costMatrix.detention_origin.total,color:T.amber,freeTime:BASE.costMatrix.detention_origin.avgFP,breach:Math.max(0,BASE.stageDays.origin_detention.avg-BASE.costMatrix.detention_origin.avgFP),prevent:"Faster documentation, earlier truck booking"},
@@ -1396,17 +1487,72 @@ function HistoryPage({setPage,navToSurcharges}){
       <div style={{display:"flex",gap:6,marginBottom:10}}><Pill active={portTab==="pol"} onClick={()=>setPortTab("pol")} color={T.amber}>Origin (POL)</Pill><Pill active={portTab==="pod"} onClick={()=>setPortTab("pod")} color={T.purple}>Dest (POD)</Pill></div>
       <ChartBox title="Avg Dwell by Port" h={220}>{!(portTab==="pol"?polData:podData).length?<div style={{height:220,display:"flex",alignItems:"center",justifyContent:"center",color:T.dim,fontSize:11}}>No port data available.</div>:<ResponsiveContainer><BarChart data={(portTab==="pol"?polData:podData).slice(0,8)} layout="vertical"><CartesianGrid strokeDasharray="3 3" stroke={T.border+"60"} vertical={false}/><XAxis type="number" stroke={T.dim} fontSize={10} tickFormatter={v=>v+"d"}/><YAxis type="category" dataKey="port" width={55} stroke={T.dim} fontSize={10}/><Tooltip content={<CTip/>}/><Legend formatter={v=><span style={{fontSize:9,color:T.sub}}>{v}</span>}/><ReferenceLine x={portfolioAvg} stroke={T.blue} strokeDasharray="6 3" label={{value:"Avg: "+portfolioAvg+"d",position:"top",fontSize:9,fill:T.blue}}/>{portTab==="pol"?[<Bar key="det" dataKey="avgODet" name="Det" fill={T.amber} stackId="p"/>,<Bar key="dem" dataKey="avgODem" name="Dem" fill={T.purple} stackId="p"/>,<Bar key="sto" dataKey="avgOSto" name="Sto" fill={T.green} stackId="p"/>,<Bar key="com" dataKey="avgOComb" name="Comb" fill={T.red} stackId="p" radius={[0,3,3,0]}/>]:[<Bar key="det" dataKey="avgDDet" name="Det" fill={T.amber} stackId="p"/>,<Bar key="dem" dataKey="avgDDem" name="Dem" fill={T.purple} stackId="p"/>,<Bar key="sto" dataKey="avgDSto" name="Sto" fill={T.green} stackId="p"/>,<Bar key="com" dataKey="avgDComb" name="Comb" fill={T.red} stackId="p" radius={[0,3,3,0]}/>]}</BarChart></ResponsiveContainer>}</ChartBox>
       <table style={{width:"100%",borderCollapse:"separate",borderSpacing:"0 4px",fontSize:10,marginTop:8}}><thead><tr style={{color:T.dim,fontSize:10,textAlign:"left",background:T.card2}}>{["Port","Vol","Det","Dem","Sto","Comb","Total","Score","Rating"].map(h=><th key={h} style={{padding:"6px 7px",fontWeight:600,textTransform:"uppercase",letterSpacing:"0.5px",textAlign:["Vol","Score"].includes(h)?"right":"left",whiteSpace:"nowrap"}}>{h}{h==="Score"&&<HoverTip text={"Cost-share weighted dwell score. Origin: Det×28%+Dem×13%+Sto×2%+Comb×57%. Dest: Det×19%+Dem×50%+Sto×13%+Comb×18%. Higher = worse."}/>}{h==="Rating"&&<HoverTip text={"High: score > 8. Monitor: 5–8. OK: < 5."}/>}</th>)}</tr></thead>
-      <tbody>{(portTab==="pol"?polData:podData).map((p,i)=>{const r=p.score>8?{t:"High",c:T.red}:p.score>5?{t:"Monitor",c:T.amber}:{t:"OK",c:T.green};const isPol=portTab==="pol";return <tr key={i} style={{background:T.card2}}><td style={{padding:"6px 7px",borderRadius:"6px 0 0 6px",fontWeight:600,fontFamily:"monospace"}}>{p.port}</td><td style={{padding:"6px 7px",color:T.sub,textAlign:"right"}}>{p.containers}</td><td style={{padding:"6px 7px",color:T.amber,fontWeight:700}}>{(isPol?p.avgODet:p.avgDDet)+"d"}</td><td style={{padding:"6px 7px",color:T.purple,fontWeight:700}}>{(isPol?p.avgODem:p.avgDDem)+"d"}</td><td style={{padding:"6px 7px",color:T.green,fontWeight:700}}>{(isPol?p.avgOSto:p.avgDSto)+"d"}</td><td style={{padding:"6px 7px",color:T.red,fontWeight:700}}>{(isPol?p.avgOComb:p.avgDComb)+"d"}</td><td style={{padding:"6px 7px",fontWeight:700}}>{p.totalDwell}d</td><td style={{padding:"6px 7px",fontWeight:700,textAlign:"right",color:p.score>8?T.red:p.score>5?T.amber:T.green}}>{p.score}</td><td style={{padding:"6px 7px",borderRadius:"0 6px 6px 0"}}><SolidBadge color={r.c}>{r.t}</SolidBadge></td></tr>;})}</tbody></table>
+      <tbody>{(portTab==="pol"?polData:podData).map((p,i)=>{const r=p.score>8?{t:"High",c:T.red}:p.score>5?{t:"Monitor",c:T.amber}:{t:"OK",c:T.green};const isPol=portTab==="pol";const isSel=selPort&&selPort.port===p.port;return <tr key={i} onClick={()=>setSelPort(isSel?null:{...p,isPol})} style={{background:isSel?T.blueBg:T.card2,cursor:"pointer",transition:"filter .1s"}} onMouseEnter={e=>e.currentTarget.style.filter="brightness(0.97)"} onMouseLeave={e=>e.currentTarget.style.filter=""}><td style={{padding:"6px 7px",borderRadius:"6px 0 0 6px",fontWeight:700,fontFamily:"monospace"}}>{p.port}{isSel&&<ChevronDown size={10} color={T.blue} style={{marginLeft:4}}/>}</td><td style={{padding:"6px 7px",color:T.sub,textAlign:"right"}}>{p.containers}</td><td style={{padding:"6px 7px",color:T.amber,fontWeight:700}}>{(isPol?p.avgODet:p.avgDDet)+"d"}</td><td style={{padding:"6px 7px",color:T.purple,fontWeight:700}}>{(isPol?p.avgODem:p.avgDDem)+"d"}</td><td style={{padding:"6px 7px",color:T.green,fontWeight:700}}>{(isPol?p.avgOSto:p.avgDSto)+"d"}</td><td style={{padding:"6px 7px",color:T.red,fontWeight:700}}>{(isPol?p.avgOComb:p.avgDComb)+"d"}</td><td style={{padding:"6px 7px",fontWeight:700}}>{p.totalDwell}d</td><td style={{padding:"6px 7px",fontWeight:700,textAlign:"right",color:p.score>8?T.red:p.score>5?T.amber:T.green}}>{p.score}</td><td style={{padding:"6px 7px",borderRadius:"0 6px 6px 0"}}><div style={{display:"flex",alignItems:"center",gap:6}}><SolidBadge color={r.c}>{r.t}</SolidBadge><span style={{fontSize:9,color:T.blue,fontWeight:600}}>Deep Dive →</span></div></td></tr>;})}</tbody></table>
     </Card>
-    {false&&<div>{/* Top Lane Performance removed — lane is not an actionable unit for D&D; charges occur at ports and depots */}</div>}
+
+    {/* ── PORT DEEP DIVE ── */}
+    {selPort&&(()=>{
+      const p=selPort;
+      const topCarrier=Object.entries(BASE.carriers).reduce((a,[n,d])=>{
+        const dwell=p.isPol?d.avgODet:d.avgDDet;
+        return dwell>a[1]?[n,dwell]:a;
+      },["—",0]);
+      const topStage=stageData.filter(s=>p.isPol?s.stage.includes("Origin"):s.stage.includes("Dest")).reduce((a,b)=>b.breach>a.breach?b:a,stageData[0]);
+      const affectedLanes=BASE.topLanes.filter(l=>p.isPol?l.lane.slice(0,5)===p.port:l.lane.slice(6,11)===p.port);
+      const topSurcharge=p.isPol?"Origin Detention":"Dest Demurrage";
+      const r=p.score>8?{t:"High Risk",c:T.red}:p.score>5?{t:"Monitor",c:T.amber}:{t:"OK",c:T.green};
+      return <Card style={{marginTop:12,borderLeft:"3px solid "+r.c,background:T.card2+"60"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+          <div>
+            <div style={{fontSize:15,fontWeight:700,fontFamily:"monospace"}}>{p.port} — Port Deep Dive</div>
+            <div style={{fontSize:10,color:T.sub,marginTop:2}}>{p.isPol?"Origin (POL)":"Destination (POD)"} · {p.containers} containers · Score: <span style={{fontWeight:700,color:r.c}}>{p.score}</span></div>
+          </div>
+          <button onClick={()=>setSelPort(null)} style={{background:"none",border:"none",cursor:"pointer"}}><X size={14} color={T.dim}/></button>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:10,marginBottom:14}}>
+          {[
+            {label:"Top Carrier at this Port",value:topCarrier[0],sub:topCarrier[1].toFixed(1)+"d avg "+(p.isPol?"O.Det":"D.Det"),color:T.amber},
+            {label:"Top Surcharge Category",value:topSurcharge,sub:"Highest cost driver at this port",color:T.purple},
+            {label:"Highest Cost Stage",value:topStage?topStage.stage:"—",sub:topStage&&topStage.breach>0?"+"+topStage.breach.toFixed(1)+"d beyond free period":"Within free period",color:topStage&&topStage.breach>0?T.red:T.green},
+            {label:"Affected Lanes",value:affectedLanes.length,sub:affectedLanes.slice(0,2).map(l=>l.lane).join(", ")+(affectedLanes.length>2?" +more":"") || "No matched lanes",color:T.blue},
+          ].map((d,i)=><div key={i} style={{background:"#fff",borderRadius:8,padding:"12px 14px",borderLeft:"2px solid "+d.color}}>
+            <div style={{fontSize:9,fontWeight:600,color:T.sub,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:4}}>{d.label}</div>
+            <div style={{fontSize:16,fontWeight:800,color:d.color}}>{d.value}</div>
+            <div style={{fontSize:9,color:T.dim,marginTop:2}}>{d.sub}</div>
+          </div>)}
+        </div>
+        <div style={{marginBottom:10}}>
+          <div style={{fontSize:11,fontWeight:600,marginBottom:6}}>Dwell Profile — {p.port}</div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:6}}>
+            {(p.isPol?[{l:"Det",v:p.avgODet,fp:5.1,c:T.amber},{l:"Dem",v:p.avgODem,fp:3.1,c:T.purple},{l:"Sto",v:p.avgOSto||0,fp:3.1,c:T.green},{l:"Comb",v:p.avgOComb||0,fp:9.9,c:T.red}]:[{l:"Det",v:p.avgDDet,fp:6.0,c:T.amber},{l:"Dem",v:p.avgDDem,fp:3.0,c:T.purple},{l:"Sto",v:p.avgDSto||0,fp:3.0,c:T.green},{l:"Comb",v:p.avgDComb||0,fp:12.0,c:T.red}]).map((m,i)=>{
+              const over=m.v>m.fp;
+              return <div key={i} style={{background:"#fff",borderRadius:8,padding:"8px 10px",borderTop:"2px solid "+(over?T.red:m.c)}}>
+                <div style={{fontSize:9,color:T.sub}}>{m.l}</div>
+                <div style={{fontSize:16,fontWeight:700,color:over?T.red:m.c}}>{m.v.toFixed(1)}d</div>
+                <div style={{fontSize:9,color:T.dim}}>FP: {m.fp}d {over?"⚠ Over":""}</div>
+              </div>;
+            })}
+          </div>
+        </div>
+        {affectedLanes.length>0&&<div>
+          <div style={{fontSize:11,fontWeight:600,marginBottom:6}}>Lanes through {p.port}</div>
+          <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+            {affectedLanes.map((l,i)=><span key={i} style={{background:T.blue+"15",color:T.blue,borderRadius:6,padding:"3px 10px",fontSize:10,fontWeight:600,fontFamily:"monospace"}}>{l.lane}</span>)}
+          </div>
+          <div style={{marginTop:8,fontSize:10,color:T.sub}}>Take these lanes to <span style={{color:T.purple,fontWeight:700,cursor:"pointer"}} onClick={()=>setPage("surcharges")}>Negotiation Center →</span> to build the free-day case for this port.</div>
+        </div>}
+      </Card>;
+    })()}
+
+    {false&&<div>{/* Top Lane Performance removed */}</div>}
     {/* ── WHAT SHOULD I DO NEXT? ── */}
     <div style={{marginTop:16,marginBottom:4}}>
       <div style={{fontSize:10,fontWeight:700,color:T.sub,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:10}}>What should I do next?</div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10}}>
         {[
-          {title:"Drill into a specific port",sub:"Click any port row in the benchmarking table above to see which lanes drive its dwell — and which contracts to renegotiate.",color:T.amber,icon:"🏭"},
-          {title:"Negotiate by lane",sub:"Take the highest-breach lanes to Negotiation Center to build the case for extended free days on your worst performers.",color:T.purple,icon:"📋",page:"surcharges"},
-          {title:"Escalate worst carrier",sub:"Cross-reference structural leakage with Carrier Intel — a carrier that scores high here systemically, not just on one booking.",color:T.blue,icon:"🚢",page:"carriers"},
+          {title:"Click a port above for deep dive",sub:"The table above is clickable — select any port to see its top carrier, surcharge, stage, and affected lanes.",color:T.amber,icon:"🏭"},
+          {title:"Negotiate by port",sub:"Use the Negotiation Center to build the case for extended free days on the lanes running through your worst port.",color:T.purple,icon:"📋",page:"surcharges"},
+          {title:"Escalate worst carrier",sub:"Cross-reference structural leakage with Carrier Intel to confirm whether the port's issue is carrier-driven or process-driven.",color:T.blue,icon:"🚢",page:"carriers"},
         ].map((d,i)=><Card key={i} style={{padding:"14px 16px",cursor:d.page?"pointer":undefined,borderTop:"2px solid "+d.color}} onClick={()=>d.page&&setPage(d.page)}>
           <div style={{fontSize:10,fontWeight:700,color:d.color,marginBottom:4}}>{d.icon} {d.title}</div>
           <div style={{fontSize:10,color:T.sub,lineHeight:1.5,marginBottom:d.page?8:0}}>{d.sub}</div>
