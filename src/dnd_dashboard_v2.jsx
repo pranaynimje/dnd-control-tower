@@ -494,7 +494,7 @@ function CostPage({setPage}){
 
 // ═══ MODULE 3: CARRIER INTEL ═══
 const CARRIER_VIEWS=[
-  {id:"scatter",   label:"Avg Dwell Days"},
+  {id:"scatter",   label:"Free Period Utilization"},
   {id:"exceeding", label:"Containers Exceeding Free Days"},
   {id:"cost",      label:"Cost Exposure"},
 ];
@@ -544,65 +544,55 @@ function CarrierPage({setPage}){
 
   const renderPanel=(cat)=>{
     if(view==="scatter"){
-      const data=carriers.map(c=>({name:c.name,x:+c[cat.xKey].toFixed(2),y:+c[cat.yKey].toFixed(2),z:c.containers,risk:c.risk}));
-      const xs=data.map(c=>c.x);const ys=data.map(c=>c.y);
-      if(!xs.length||!ys.length) return <div style={{padding:20,textAlign:"center",color:T.dim,fontSize:11}}>No carrier data available for this category.</div>;
-      if(data.length<2) return <div style={{padding:20,textAlign:"center",color:T.dim,fontSize:11}}>At least 2 carriers required for scatter comparison. Switch to Scorecard view.</div>;
-      const allWithinFP=Math.max(...xs)<cat.fpX*0.2&&Math.max(...ys)<cat.fpY*0.2;
-      if(allWithinFP)return <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:200,gap:6}}>
-        <div style={{fontSize:22}}>✓</div>
-        <div style={{fontSize:12,fontWeight:700,color:T.green}}>All carriers within free period</div>
-        <div style={{fontSize:10,color:T.sub}}>No action required for {cat.label}. Max observed: {Math.max(...xs).toFixed(1)}d origin, {Math.max(...ys).toFixed(1)}d dest (FP: {cat.fpX}d / {cat.fpY}d).</div>
-      </div>;
-      const xMax=+(Math.max(cat.fpX*1.5,Math.max(...xs)*1.3+0.3)).toFixed(1);const yMax=+(Math.max(cat.fpY*1.5,Math.max(...ys)*1.3+0.3)).toFixed(1);
+      // Show % of free period consumed per carrier — origin vs destination
+      // 100% = exactly at free period threshold. >100% = in paid tier.
+      const data=carriers.map(c=>{
+        const oPct=Math.round(c[cat.xKey]/cat.fpX*100);
+        const dPct=Math.round(c[cat.yKey]/cat.fpY*100);
+        const isSel=selCarrier===c.name;
+        return{name:c.name,origin:oPct,dest:dPct,oActual:+c[cat.xKey].toFixed(1),dActual:+c[cat.yKey].toFixed(1),containers:c.containers,risk:c.risk,isSel};
+      });
+      if(!data.length)return<div style={{padding:20,textAlign:"center",color:T.dim,fontSize:11}}>No carrier data available for this category.</div>;
+      const maxPct=Math.max(...data.flatMap(d=>[d.origin,d.dest]),120);
+      const barCol=pct=>pct>100?T.red:pct>85?T.amber:T.green;
       return <div>
-      <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:6,flexWrap:"wrap"}}>
-        {[{c:T.red,label:"Both over free period"},{c:T.amber,label:"One side over free period"},{c:T.green,label:"Within free period"}].map(({c,label})=>
-          <div key={label} style={{display:"flex",alignItems:"center",gap:5}}><svg width={10} height={10}><circle cx={5} cy={5} r={5} fill={c} fillOpacity={0.75}/></svg><span style={{fontSize:9,color:T.sub}}>{label}</span></div>)}
-        <div style={{display:"flex",alignItems:"center",gap:5,marginLeft:8}}><svg width={16} height={10}><circle cx={5} cy={5} r={3} fill={T.dim} fillOpacity={0.5}/><circle cx={13} cy={5} r={5} fill={T.dim} fillOpacity={0.5}/></svg><span style={{fontSize:9,color:T.sub}}>Bubble size = container volume</span></div>
-      </div>
-      <div style={{position:"relative",height:200}}>
-        <div style={{position:"absolute",top:6,right:6,fontSize:9,fontWeight:700,color:T.red,background:T.redBg,borderRadius:4,padding:"1px 5px",pointerEvents:"none",zIndex:5}}>⚠ Both Over</div>
-        <div style={{position:"absolute",top:6,left:52,fontSize:9,fontWeight:700,color:T.amber,background:T.amberBg,borderRadius:4,padding:"1px 5px",pointerEvents:"none",zIndex:5}}>▲ Dest Only</div>
-        <div style={{position:"absolute",bottom:26,right:6,fontSize:9,fontWeight:700,color:T.amber,background:T.amberBg,borderRadius:4,padding:"1px 5px",pointerEvents:"none",zIndex:5}}>Origin Only ▶</div>
-        <div style={{position:"absolute",bottom:26,left:52,fontSize:9,fontWeight:700,color:T.green,background:T.greenBg,borderRadius:4,padding:"1px 5px",pointerEvents:"none",zIndex:5}}>✓ Best</div>
+        <div style={{display:"flex",alignItems:"center",gap:16,marginBottom:6,flexWrap:"wrap"}}>
+          {[{c:T.red,label:"Over free period (>100%)"},{c:T.amber,label:"Near limit (85–100%)"},{c:T.green,label:"Within free period"}].map(({c,label})=>
+            <div key={label} style={{display:"flex",alignItems:"center",gap:5}}><div style={{width:10,height:10,borderRadius:2,background:c,opacity:0.85}}/><span style={{fontSize:9,color:T.sub}}>{label}</span></div>)}
+          <div style={{display:"flex",alignItems:"center",gap:4,marginLeft:4}}><div style={{width:14,height:2,background:T.red,borderStyle:"dashed",borderTop:"2px dashed "+T.red,height:0}}/><span style={{fontSize:9,color:T.red,fontWeight:600}}>100% = free period limit</span></div>
+        </div>
         <ResponsiveContainer width="100%" height={200}>
-          <ScatterChart margin={{top:14,right:18,bottom:24,left:4}}>
-            <CartesianGrid strokeDasharray="3 3" stroke={T.border+"50"}/>
-            <XAxis type="number" dataKey="x" domain={[0,xMax]} stroke={T.dim} fontSize={8}
-              label={{value:cat.xLabel,position:"insideBottom",offset:-12,fontSize:8,fill:T.sub}}/>
-            <YAxis type="number" dataKey="y" domain={[0,yMax]} stroke={T.dim} fontSize={8} width={28}
-              label={{value:cat.yLabel,angle:-90,position:"insideLeft",offset:14,fontSize:7,fill:T.sub}}/>
-            <ZAxis dataKey="z" range={[80,400]} name="Containers"/>
-            <ReferenceLine x={cat.fpX} stroke={T.red} strokeDasharray="4 2" strokeWidth={1.2}
-              label={{value:cat.fpX+"d",position:"top",fontSize:7,fill:T.red}}/>
-            <ReferenceLine y={cat.fpY} stroke={T.purple} strokeDasharray="4 2" strokeWidth={1.2}
-              label={{value:cat.fpY+"d",position:"right",fontSize:7,fill:T.purple}}/>
-            <Tooltip content={({active,payload})=>{
+          <BarChart data={data} layout="vertical" margin={{top:4,right:30,bottom:4,left:4}} barCategoryGap="28%">
+            <CartesianGrid strokeDasharray="3 3" stroke={T.border+"50"} horizontal={false}/>
+            <XAxis type="number" domain={[0,maxPct]} stroke={T.dim} fontSize={9} tickFormatter={v=>v+"%"}/>
+            <YAxis type="category" dataKey="name" stroke={T.dim} fontSize={9} width={40}
+              tick={({x,y,payload})=>{const isSel=selCarrier===payload.value;return<text x={x} y={y} textAnchor="end" dominantBaseline="middle" fontSize={isSel?10:9} fontWeight={isSel?800:500} fill={isSel?T.blue:T.sub}>{payload.value}</text>;}}/>
+            <ReferenceLine x={100} stroke={T.red} strokeDasharray="4 2" strokeWidth={1.5}
+              label={{value:"FP",position:"top",fontSize:8,fill:T.red}}/>
+            <Tooltip content={({active,payload,label})=>{
               if(!active||!payload?.length)return null;
-              const d=payload[0].payload;
-              return <div style={{background:"#fff",borderRadius:8,padding:"8px 12px",boxShadow:"0 4px 14px rgba(0,0,0,.12)",minWidth:140}}>
+              const d=data.find(r=>r.name===label);if(!d)return null;
+              return<div style={{background:"#fff",borderRadius:8,padding:"8px 12px",boxShadow:"0 4px 14px rgba(0,0,0,.12)",minWidth:160}}>
                 <div style={{fontSize:11,fontWeight:700,marginBottom:4,color:riskCol(d.risk)}}>{d.name}</div>
-                <div style={{fontSize:9,color:T.sub}}>{"Origin: "+d.x+"d (FP "+cat.fpX+"d)"}</div>
-                <div style={{fontSize:9,color:T.sub}}>{"Dest: "+d.y+"d (FP "+cat.fpY+"d)"}</div>
-                <div style={{fontSize:9,color:T.sub}}>{"Containers: "+d.z}</div>
-                <div style={{fontSize:9,fontWeight:700,color:d.x>cat.fpX&&d.y>cat.fpY?T.red:d.x>cat.fpX||d.y>cat.fpY?T.amber:T.green,marginTop:3}}>{d.x>cat.fpX&&d.y>cat.fpY?"⚠ Both sides over free period":d.x>cat.fpX?"Origin over free period":d.y>cat.fpY?"Destination over free period":"✓ Within free period"}</div>
+                <div style={{fontSize:10,color:T.sub,marginBottom:2}}>Origin: <b>{d.oActual}d</b> / {cat.fpX}d FP = <span style={{color:barCol(d.origin),fontWeight:700}}>{d.origin}%</span></div>
+                <div style={{fontSize:10,color:T.sub}}>Dest: <b>{d.dActual}d</b> / {cat.fpY}d FP = <span style={{color:barCol(d.dest),fontWeight:700}}>{d.dest}%</span></div>
+                <div style={{fontSize:9,color:T.dim,marginTop:3}}>{d.containers} containers</div>
               </div>;
             }}/>
-            <Scatter data={data} shape={({cx,cy,payload})=>{
-              const r=rFromZ(payload.z);
-              const overX=payload.x>cat.fpX;const overY=payload.y>cat.fpY;
-              const col=overX&&overY?T.red:overX||overY?T.amber:T.green;
-              const isSel=selCarrier===payload.name;
-              return <g>
-                {isSel&&<circle cx={cx} cy={cy} r={r+6} fill="none" stroke={T.blue} strokeWidth={2} strokeDasharray="4 2"/>}
-                <circle cx={cx} cy={cy} r={r} fill={col} fillOpacity={isSel?0.95:0.72} stroke="#fff" strokeWidth={isSel?2:1.3}/>
-                <text x={cx} y={cy-r-(isSel?10:3)} textAnchor="middle" fontSize={isSel?9:8} fontWeight={isSel?800:700} fill={isSel?T.blue:T.text}>{payload.name}</text>
-              </g>;
-            }}/>
-          </ScatterChart>
+            <Bar dataKey="origin" name="Origin" maxBarSize={9} radius={[0,3,3,0]}>
+              {data.map((d,i)=><Cell key={i} fill={barCol(d.origin)} fillOpacity={selCarrier&&selCarrier!==d.name?0.35:0.85}/>)}
+            </Bar>
+            <Bar dataKey="dest" name="Destination" maxBarSize={9} radius={[0,3,3,0]}>
+              {data.map((d,i)=><Cell key={i} fill={barCol(d.dest)} fillOpacity={selCarrier&&selCarrier!==d.name?0.35:0.85}/>)}
+            </Bar>
+          </BarChart>
         </ResponsiveContainer>
-      </div></div>;
+        <div style={{display:"flex",alignItems:"center",gap:12,marginTop:4}}>
+          <div style={{display:"flex",alignItems:"center",gap:5}}><div style={{width:18,height:8,borderRadius:2,background:T.sub,opacity:0.5}}/><span style={{fontSize:9,color:T.dim}}>Top bar = Origin · Bottom bar = Destination</span></div>
+          {!selCarrier&&<span style={{fontSize:9,color:T.blue,fontWeight:500}}>Click a carrier row below to highlight</span>}
+          {selCarrier&&<span style={{fontSize:9,color:T.blue,fontWeight:600}}>{selCarrier} highlighted — other carriers dimmed</span>}
+        </div>
+      </div>;
     }
 if(view==="exceeding"){
       const fpField={detention:"avgODet",demurrage:"avgODem",storage:"avgOSto",combined:"totalO"}[cat.id];
@@ -1425,7 +1415,7 @@ function OptimizerPage(){
 }
 
 // ═══ MODULE 5: HISTORICAL ═══
-function HistoryPage({setPage,navToSurcharges}){
+function HistoryPage({setPage,navToSurchargesPort}){
   const[trendFilter,setTrendFilter]=useState("all");const[portTab,setPortTab]=useState("pol");
   const[selPort,setSelPort]=useState(null);
   useEffect(()=>setSelPort(null),[portTab]);
@@ -1544,7 +1534,7 @@ function HistoryPage({setPage,navToSurcharges}){
           <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
             {affectedLanes.map((l,i)=><span key={i} style={{background:T.blue+"15",color:T.blue,borderRadius:6,padding:"3px 10px",fontSize:10,fontWeight:600,fontFamily:"monospace"}}>{l.lane}</span>)}
           </div>
-          <div style={{marginTop:8,fontSize:10,color:T.sub}}>Take these lanes to <span style={{color:T.purple,fontWeight:700,cursor:"pointer"}} onClick={()=>setPage("surcharges")}>Negotiation Center →</span> to build the free-day case for this port.</div>
+          <div style={{marginTop:8,fontSize:10,color:T.sub}}>Take this port to <span style={{color:T.purple,fontWeight:700,cursor:"pointer"}} onClick={()=>navToSurchargesPort({...p,side:p.isPol?"Origin":"Dest"})}>Negotiation Center →</span> to build the free-day case.</div>
         </div>}
       </Card>;
     })()}
@@ -1568,164 +1558,161 @@ function HistoryPage({setPage,navToSurcharges}){
   </div>);
 }
 
-// ═══ MODULE 6: SURCHARGES ═══
-function SurchargePage({setPage,selectedLane,clearLane}){
-  const lanes=useMemo(()=>BASE.topLanes.map(l=>{const td=l.avgODet+l.avgODem+l.avgDDem+l.avgDDet;const fp=BASE.costMatrix.dnd_origin.avgFP;const bp=Math.max(0,+(td-fp).toFixed(2));const cpc=Math.round(bp*72);return{...l,totalDwell:+td.toFixed(2),costPerContainer:cpc,beyondFP:bp};}).sort((a,b)=>b.costPerContainer-a.costPerContainer),[]);
-  const[activeLane,setActiveLane]=useState(()=>selectedLane||null);
+// ═══ MODULE 6: NEGOTIATION CENTER ═══
+function SurchargePage({setPage,selectedPort,clearPort}){
+  // Port-level data aggregated from top lanes
+  const portNegData=useMemo(()=>{
+    if(!BASE.topLanes.length)return{pols:[],pods:[]};
+    const polMap={},podMap={};
+    BASE.topLanes.forEach(l=>{
+      const pol=l.lane.slice(0,5),pod=l.lane.slice(6,11);
+      if(!polMap[pol])polMap[pol]={port:pol,side:"Origin",containers:0,tODet:0,tODem:0,tOSto:0,tOComb:0};
+      polMap[pol].containers+=l.containers;polMap[pol].tODet+=l.avgODet*l.containers;polMap[pol].tODem+=l.avgODem*l.containers;polMap[pol].tOSto+=(l.avgOSto||0)*l.containers;polMap[pol].tOComb+=(l.avgOComb||0)*l.containers;
+      if(!podMap[pod])podMap[pod]={port:pod,side:"Dest",containers:0,tDDem:0,tDDet:0,tDSto:0,tDComb:0};
+      podMap[pod].containers+=l.containers;podMap[pod].tDDem+=l.avgDDem*l.containers;podMap[pod].tDDet+=l.avgDDet*l.containers;podMap[pod].tDSto+=(l.avgDSto||0)*l.containers;podMap[pod].tDComb+=(l.avgDComb||0)*l.containers;
+    });
+    const pols=Object.values(polMap).map(p=>{const c=p.containers;const avgODet=+(p.tODet/c).toFixed(2),avgODem=+(p.tODem/c).toFixed(2),avgOSto=+(p.tOSto/c).toFixed(2),avgOComb=+(p.tOComb/c).toFixed(2);const score=+(avgODet*0.28+avgODem*0.13+avgOSto*0.02+avgOComb*0.57).toFixed(1);return{...p,avgODet,avgODem,avgOSto,avgOComb,score};}).sort((a,b)=>b.score-a.score);
+    const pods=Object.values(podMap).map(p=>{const c=p.containers;const avgDDem=+(p.tDDem/c).toFixed(2),avgDDet=+(p.tDDet/c).toFixed(2),avgDSto=+(p.tDSto/c).toFixed(2),avgDComb=+(p.tDComb/c).toFixed(2);const score=+(avgDDet*0.19+avgDDem*0.50+avgDSto*0.13+avgDComb*0.18).toFixed(1);return{...p,avgDDem,avgDDet,avgDSto,avgDComb,score};}).sort((a,b)=>b.score-a.score);
+    return{pols,pods};
+  },[]);
+  const[activePort,setActivePort]=useState(()=>selectedPort||null);
+  const[portTab,setPortTab]=useState("pol");
   const[assumedDays,setAssumedDays]=useState(null);
-  useEffect(()=>{setActiveLane(selectedLane||null);},[selectedLane]);
+  useEffect(()=>{setActivePort(selectedPort||null);},[selectedPort]);
+  useEffect(()=>{if(!selectedPort)setActivePort(null);},[portTab]);
   const cats=[{name:"Detention — Origin",side:"Origin",total:49169,containers:261,avgFP:5.1,color:T.amber},{name:"Detention — Dest",side:"Dest",total:1955,containers:8,avgFP:6.0,color:T.amber},{name:"Demurrage — Origin",side:"Origin",total:22353,containers:52,avgFP:3.1,color:T.purple},{name:"Demurrage — Dest",side:"Dest",total:5144,containers:12,avgFP:3.0,color:T.purple},{name:"Storage — Origin",side:"Origin",total:3075,containers:23,avgFP:3.1,color:T.green},{name:"Storage — Dest",side:"Dest",total:1295,containers:9,avgFP:3.0,color:T.green},{name:"Combined — Origin",side:"Origin",total:99565,containers:212,avgFP:9.9,color:T.red},{name:"Combined — Dest",side:"Dest",total:1814,containers:4,avgFP:12.0,color:T.red}];
   const detO=49169,demO=22353,dndO=99565,detD=1955,demD=5144,dndD=1814;
+  const portAvgODet=BASE.topLanes.length>0?+(BASE.topLanes.reduce((s,l)=>s+l.avgODet*l.containers,0)/BASE.topLanes.reduce((s,l)=>s+l.containers,0)).toFixed(1):0;
+  const portAvgODem=BASE.topLanes.length>0?+(BASE.topLanes.reduce((s,l)=>s+l.avgODem*l.containers,0)/BASE.topLanes.reduce((s,l)=>s+l.containers,0)).toFixed(1):0;
+  const portAvgDDem=BASE.topLanes.length>0?+(BASE.topLanes.reduce((s,l)=>s+l.avgDDem*l.containers,0)/BASE.topLanes.reduce((s,l)=>s+l.containers,0)).toFixed(1):0;
+  const portAvgDDet=BASE.topLanes.length>0?+(BASE.topLanes.reduce((s,l)=>s+l.avgDDet*l.containers,0)/BASE.topLanes.reduce((s,l)=>s+l.containers,0)).toFixed(1):0;
+
   return (<div style={{padding:"20px 28px",width:"100%",boxSizing:"border-box"}}>
-    <SH title="Negotiation Center" sub={activeLane?"Lane-level negotiation data for "+activeLane.lane+". Use this to prepare your carrier conversation.":"Which lanes and categories should you renegotiate first? Find your highest-leverage opportunities."}/>
-    {activeLane&&<div style={{display:"flex",alignItems:"center",gap:10,padding:"8px 14px",background:T.blueBg,borderRadius:8,marginBottom:14,border:"1px solid "+T.blue+"30"}}>
-      <span style={{fontSize:13,fontWeight:700,fontFamily:"monospace",color:T.text}}>{activeLane.lane}</span>
-      <Badge color={T.blue}>{activeLane.containers} containers</Badge>
-      {(activeLane.surchargePct??35)>35?<SolidBadge color={T.red}>{"D&D "+(activeLane.surchargePct??35)+"% of cost"}</SolidBadge>:<SolidBadge color={T.green}>{"D&D "+(activeLane.surchargePct??35)+"%"}</SolidBadge>}
+    <SH title="Negotiation Center" sub={activePort?"Port-level negotiation data for "+activePort.port+" ("+activePort.side+"). D&D is charged at the port (demurrage) and outside the port (detention).":"Select a port to build your negotiation case. D&D charges occur at ports and at depots outside ports — not port-to-port."}/>
+
+    {/* Active port banner */}
+    {activePort&&<div style={{display:"flex",alignItems:"center",gap:10,padding:"8px 14px",background:T.blueBg,borderRadius:8,marginBottom:14,border:"1px solid "+T.blue+"30"}}>
+      <span style={{fontSize:13,fontWeight:700,fontFamily:"monospace",color:T.text}}>{activePort.port}</span>
+      <Badge color={activePort.side==="Origin"?T.amber:T.purple}>{activePort.side==="Origin"?"Origin (POL)":"Destination (POD)"}</Badge>
+      <Badge color={T.blue}>{activePort.containers} containers</Badge>
+      {activePort.score>8?<SolidBadge color={T.red}>High Risk · Score {activePort.score}</SolidBadge>:activePort.score>5?<SolidBadge color={T.amber}>Monitor · Score {activePort.score}</SolidBadge>:<SolidBadge color={T.green}>OK · Score {activePort.score}</SolidBadge>}
       <div style={{flex:1}}/>
-      <button onClick={()=>{setActiveLane(null);if(clearLane)clearLane();setPage("history");}} style={{padding:"4px 10px",borderRadius:6,border:"1px solid "+T.border,background:"#fff",color:T.sub,fontSize:9,fontWeight:600,cursor:"pointer"}}>← Back to Historical</button>
-      <button onClick={()=>{setActiveLane(null);if(clearLane)clearLane();}} style={{background:"none",border:"none",cursor:"pointer",padding:4}}><X size={14} color={T.dim}/></button>
+      <button onClick={()=>{setActivePort(null);if(clearPort)clearPort();}} style={{background:"none",border:"none",cursor:"pointer",padding:4}}><X size={14} color={T.dim}/></button>
     </div>}
 
-    {activeLane?(()=>{
-      // Portfolio averages for benchmark
-      if(!BASE.topLanes.length)return<div style={{padding:20,textAlign:"center",color:T.dim,fontSize:11}}>No lane data to benchmark.</div>;
-      const portAvgODet=+(BASE.topLanes.reduce((s,l)=>s+l.avgODet*l.containers,0)/BASE.topLanes.reduce((s,l)=>s+l.containers,0)).toFixed(1);
-      const portAvgODem=+(BASE.topLanes.reduce((s,l)=>s+l.avgODem*l.containers,0)/BASE.topLanes.reduce((s,l)=>s+l.containers,0)).toFixed(1);
-      const portAvgDDem=+(BASE.topLanes.reduce((s,l)=>s+l.avgDDem*l.containers,0)/BASE.topLanes.reduce((s,l)=>s+l.containers,0)).toFixed(1);
-      const portAvgDDet=+(BASE.topLanes.reduce((s,l)=>s+l.avgDDet*l.containers,0)/BASE.topLanes.reduce((s,l)=>s+l.containers,0)).toFixed(1);
-      // Rate structure: if both O.Det > det FP AND O.Dem > dem FP → combined free period (9.9d) covers both → combined may be better
-      const oDetOver=activeLane.avgODet>5.1;const oDemOver=activeLane.avgODem>3.1;
-      const combinedFP=BASE.costMatrix.dnd_origin.avgFP;
-      const combinedTotal=assumedDays!==null?assumedDays:activeLane.avgOComb;
+    {activePort?(()=>{
+      const p=activePort;const isPol=p.side==="Origin";
+      const metrics=isPol
+        ?[{label:"Origin Detention",desc:"outside the port — container at origin depot",laneAvg:p.avgODet,fp:BASE.costMatrix.detention_origin.avgFP,portAvg:portAvgODet,color:T.amber},
+          {label:"Origin Demurrage",desc:"at the port — container waiting for vessel load",laneAvg:p.avgODem,fp:BASE.costMatrix.demurrage_origin.avgFP,portAvg:portAvgODem,color:T.purple},
+          {label:"Origin Storage",desc:"port storage charges at origin",laneAvg:p.avgOSto||0,fp:BASE.costMatrix.storage_origin.avgFP,portAvg:0,color:T.green}]
+        :[{label:"Dest Demurrage",desc:"at the port — container waiting after discharge",laneAvg:p.avgDDem,fp:BASE.costMatrix.demurrage_destination.avgFP,portAvg:portAvgDDem,color:T.purple},
+          {label:"Dest Detention",desc:"outside the port — container at destination depot",laneAvg:p.avgDDet,fp:BASE.costMatrix.detention_destination.avgFP,portAvg:portAvgDDet,color:T.amber},
+          {label:"Dest Storage",desc:"port storage charges at destination",laneAvg:p.avgDSto||0,fp:BASE.costMatrix.storage_destination.avgFP,portAvg:0,color:T.green}];
+      const combinedFP=isPol?BASE.costMatrix.dnd_origin.avgFP:BASE.costMatrix.dnd_destination.avgFP;
+      const combinedAvg=isPol?(p.avgOComb||0):(p.avgDComb||0);
+      const combinedTotal=assumedDays!==null?assumedDays:combinedAvg;
       const combinedSaves=combinedTotal<combinedFP;
-      const usingAssumed=assumedDays!==null;
-      const rateRec=combinedSaves?"Combined Det+Dem rate covers "+(usingAssumed?assumedDays+"d assumed":activeLane.avgOComb.toFixed(1)+"d avg")+" within the "+combinedFP+"d combined free period. Recommend Combined Det+Dem rate for this lane.":"At "+(usingAssumed?assumedDays+"d assumed":activeLane.avgOComb.toFixed(1)+"d avg")+", combined free period ("+combinedFP+"d) is exceeded. Use separate rates to isolate exposure — only pay for the category that breaches.";
-      // Free period asks specific to this lane
-      const fpAsks=[
-        {label:"Origin Detention",laneAvg:activeLane.avgODet,fp:BASE.costMatrix.detention_origin.avgFP,color:T.amber},
-        {label:"Origin Demurrage",laneAvg:activeLane.avgODem,fp:BASE.costMatrix.demurrage_origin.avgFP,color:T.purple},
-        {label:"Dest Demurrage",laneAvg:activeLane.avgDDem,fp:BASE.costMatrix.demurrage_destination.avgFP,color:T.purple},
-        {label:"Dest Detention",laneAvg:activeLane.avgDDet,fp:BASE.costMatrix.detention_destination.avgFP,color:T.amber},
-      ];
-      // Negotiation script
-      const overItems=fpAsks.filter(x=>x.laneAvg>x.fp);
+      const overItems=metrics.filter(m=>m.laneAvg>m.fp);
       const scriptLines=[
-        "On lane "+activeLane.lane+", our average dwell across "+activeLane.containers+" containers is "+activeLane.totalDwell.toFixed(1)+"d total.",
-        overItems.length>0?"We are consistently exceeding free period on: "+overItems.map(x=>x.label+" ("+x.laneAvg.toFixed(1)+"d vs "+x.fp+"d free)").join(", ")+".":"All dwell metrics are within free period on this lane — focus the conversation on reducing the surcharge percentage.",
-        activeLane.beyondFP>0?"We are asking for "+Math.ceil(activeLane.beyondFP+1)+" additional free days to match our operational reality.":"We request a reduction in the D&D surcharge rate for this lane from "+(activeLane.surchargePct??35)+"% to below 30% of total invoice.",
-        "Portfolio benchmark: our avg O. Detention is "+portAvgODet+"d and this lane is "+activeLane.avgODet.toFixed(1)+"d. "+(activeLane.avgODet>portAvgODet?"This lane is "+((activeLane.avgODet-portAvgODet).toFixed(1))+"d above portfolio average — a structural issue, not a one-off.":"This lane is performing within portfolio norms.")
+        "At port "+p.port+", we have "+p.containers+" containers. "+(isPol?"Origin detention (outside port): "+p.avgODet.toFixed(1)+"d avg vs "+BASE.costMatrix.detention_origin.avgFP+"d free. Origin demurrage (at port): "+p.avgODem.toFixed(1)+"d avg vs "+BASE.costMatrix.demurrage_origin.avgFP+"d free.":"Destination demurrage (at port): "+p.avgDDem.toFixed(1)+"d avg vs "+BASE.costMatrix.demurrage_destination.avgFP+"d free. Destination detention (outside port): "+p.avgDDet.toFixed(1)+"d avg vs "+BASE.costMatrix.detention_destination.avgFP+"d free."),
+        overItems.length>0?"We are consistently exceeding free period on: "+overItems.map(m=>m.label+" ("+m.laneAvg.toFixed(1)+"d vs "+m.fp+"d free — "+m.desc+")").join("; ")+". This is a port-level structural pattern across "+p.containers+" containers.":"All metrics at "+p.port+" are within free period. The conversation should focus on the surcharge rate, not free period extension.",
+        overItems.length>0?"We request "+Math.ceil(overItems[0].laneAvg-overItems[0].fp+1)+" additional free days for "+(overItems[0].label)+" at "+p.port+" to align with our actual operational dwell.":"We request a rate reduction on the D&D surcharge at "+p.port+" given our consistent within-FP performance.",
+        "Portfolio comparison: "+(isPol?"O. Detention portfolio avg is "+portAvgODet+"d; at "+p.port+" we average "+p.avgODet.toFixed(1)+"d — "+(p.avgODet>portAvgODet?((p.avgODet-portAvgODet).toFixed(1))+"d above portfolio. This port requires port-specific negotiation.":"within portfolio norms."):"D. Demurrage portfolio avg is "+portAvgDDem+"d; at "+p.port+" we average "+p.avgDDem.toFixed(1)+"d — "+(p.avgDDem>portAvgDDem?((p.avgDDem-portAvgDDem).toFixed(1))+"d above portfolio. This port requires port-specific negotiation.":"within portfolio norms."))
       ];
       return <>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:14}}>
-          {/* Lane vs Portfolio Benchmark */}
           <Card>
-            <div style={{fontSize:14,fontWeight:600,marginBottom:3}}>Lane vs Portfolio Benchmark</div>
-            <div style={{fontSize:11,color:T.sub,marginBottom:10}}>How does this lane compare to your portfolio average? Red = lane is worse.</div>
+            <div style={{fontSize:14,fontWeight:600,marginBottom:3}}>{p.port} vs Portfolio Benchmark</div>
+            <div style={{fontSize:11,color:T.sub,marginBottom:10}}>How does this port compare to your portfolio average? Red = this port is worse than average.</div>
             <table style={{width:"100%",borderCollapse:"separate",borderSpacing:"0 4px",fontSize:11}}>
-              <thead><tr style={{color:T.dim,fontSize:9,background:T.card2}}>{["Metric","This Lane","Portfolio Avg","Diff"].map(h=><th key={h} style={{padding:"5px 6px",fontWeight:600,textAlign:h==="Metric"?"left":"right"}}>{h}</th>)}</tr></thead>
-              <tbody>{[
-                {label:"O. Detention",lane:activeLane.avgODet,port:portAvgODet,c:T.amber},
-                {label:"O. Demurrage",lane:activeLane.avgODem,port:portAvgODem,c:T.purple},
-                {label:"D. Demurrage",lane:activeLane.avgDDem,port:portAvgDDem,c:T.purple},
-                {label:"D. Detention",lane:activeLane.avgDDet,port:portAvgDDet,c:T.amber},
-              ].map((r,i)=>{const diff=+(r.lane-r.port).toFixed(1);const worse=diff>0;return <tr key={i} style={{background:worse?T.redBg+"50":T.greenBg+"50"}}>
-                <td style={{padding:"5px 6px",borderRadius:"5px 0 0 5px",fontWeight:500,color:T.sub}}>{r.label}</td>
-                <td style={{padding:"5px 6px",textAlign:"right",fontWeight:700,color:r.c}}>{r.lane.toFixed(1)}d</td>
-                <td style={{padding:"5px 6px",textAlign:"right",color:T.dim}}>{r.port}d</td>
+              <thead><tr style={{color:T.dim,fontSize:9,background:T.card2}}>{["Metric","This Port","Portfolio Avg","Diff"].map(h=><th key={h} style={{padding:"5px 6px",fontWeight:600,textAlign:h==="Metric"?"left":"right"}}>{h}</th>)}</tr></thead>
+              <tbody>{metrics.filter(m=>m.portAvg>0).map((m,i)=>{const diff=+(m.laneAvg-m.portAvg).toFixed(1);const worse=diff>0;return <tr key={i} style={{background:worse?T.redBg+"50":T.greenBg+"50"}}>
+                <td style={{padding:"5px 6px",borderRadius:"5px 0 0 5px",fontWeight:500,color:T.sub}}>{m.label}</td>
+                <td style={{padding:"5px 6px",textAlign:"right",fontWeight:700,color:m.color}}>{m.laneAvg.toFixed(1)}d</td>
+                <td style={{padding:"5px 6px",textAlign:"right",color:T.dim}}>{m.portAvg}d</td>
                 <td style={{padding:"5px 6px",textAlign:"right",borderRadius:"0 5px 5px 0",fontWeight:700,color:worse?T.red:T.green}}>{worse?"+":""}{diff}d</td>
               </tr>;})}
               </tbody>
             </table>
           </Card>
-          {/* Rate Structure Recommendation */}
           <Card>
-            <div style={{fontSize:14,fontWeight:600,marginBottom:3}}>Rate Structure — {activeLane.lane}</div>
-            <div style={{fontSize:11,color:T.sub,marginBottom:4}}>Should this lane use Combined D&D or separate Detention + Demurrage rates?</div>
-            <div style={{fontSize:10,color:T.amber,fontWeight:600,marginBottom:10,background:T.amberBg,borderRadius:5,padding:"4px 8px",display:"inline-block"}}>Note: this recommendation applies across all contracts on this lane. Individual carrier contracts may vary.</div>
-            <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10,padding:"8px 12px",background:T.card2,borderRadius:8,border:"1px solid "+T.border}}>
-              <div style={{fontSize:10,fontWeight:600,color:T.sub}}>Assume dwell days:</div>
-              <input type="number" min={1} max={60} placeholder={"Actual: "+combinedTotal.toFixed(1)+"d"} value={assumedDays===null?"":assumedDays} onChange={e=>{const v=parseInt(e.target.value);setAssumedDays(isNaN(v)||v<1?null:v);}} style={{width:90,border:"1.5px solid "+T.border,borderRadius:6,padding:"5px 8px",fontSize:12,fontWeight:600,outline:"none",background:"#fff",color:T.text}}/>
-              {assumedDays!==null&&<button onClick={()=>setAssumedDays(null)} style={{padding:"4px 8px",borderRadius:5,border:"1px solid "+T.border,background:"#fff",color:T.sub,fontSize:9,cursor:"pointer"}}>Reset to Actual</button>}
-              <div style={{fontSize:9,color:T.dim}}>Enter a fixed dwell day assumption to compare rate structures independently of this lane's history.</div>
-            </div>
-            <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:6,marginBottom:10}}>
-              {[{t:"Detention",fp:BASE.costMatrix.detention_origin.avgFP,avg:activeLane.avgODet,c:T.amber},{t:"Demurrage",fp:BASE.costMatrix.demurrage_origin.avgFP,avg:activeLane.avgODem,c:T.purple},{t:"Storage",fp:BASE.costMatrix.storage_origin.avgFP,avg:activeLane.avgOSto||0,c:T.green},{t:"Comb Det+Dem",fp:combinedFP,avg:activeLane.avgOComb,c:T.red}].map((x,i)=>{const withinFP=assumedDays!==null?assumedDays<x.fp:null;const borderColor=assumedDays!==null?(withinFP?T.green:T.red):x.c;return <div key={i} style={{background:T.card2,borderRadius:8,padding:"8px 10px",borderTop:"2px solid "+borderColor}}>
-                <div style={{fontSize:9,color:T.sub,marginBottom:4}}>{x.t}</div>
-                <div style={{fontSize:14,fontWeight:700}}>{x.fp+"d"}<span style={{fontSize:9,color:T.sub,fontWeight:400}}>{" free"}</span></div>
-                {assumedDays!==null?<div style={{marginTop:4,fontSize:10,fontWeight:700,color:withinFP?T.green:T.red}}>{withinFP?"✓ Within FP":"✗ Over FP"}</div>:<div style={{fontSize:11,color:T.dim,marginTop:2}}>{x.avg.toFixed(1)+"d avg"}</div>}
-              </div>;})}
+            <div style={{fontSize:14,fontWeight:600,marginBottom:3}}>Rate Structure — {p.port} ({p.side})</div>
+            <div style={{fontSize:11,color:T.sub,marginBottom:8}}>Combined D&D rate vs separate Detention + Demurrage at this port side.</div>
+            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10,padding:"8px 12px",background:T.card2,borderRadius:8,border:"1px solid "+T.border}}>
+              <div style={{fontSize:10,fontWeight:600,color:T.sub}}>Assume dwell:</div>
+              <input type="number" min={1} max={60} placeholder={"Actual: "+combinedAvg.toFixed(1)+"d"} value={assumedDays===null?"":assumedDays} onChange={e=>{const v=parseInt(e.target.value);setAssumedDays(isNaN(v)||v<1?null:v);}} style={{width:80,border:"1.5px solid "+T.border,borderRadius:6,padding:"5px 8px",fontSize:12,fontWeight:600,outline:"none",background:"#fff",color:T.text}}/>
+              {assumedDays!==null&&<button onClick={()=>setAssumedDays(null)} style={{padding:"4px 8px",borderRadius:5,border:"1px solid "+T.border,background:"#fff",color:T.sub,fontSize:9,cursor:"pointer"}}>Reset</button>}
             </div>
             <div style={{padding:"8px 12px",background:combinedSaves?T.greenBg:T.redBg,borderRadius:8,borderLeft:"3px solid "+(combinedSaves?T.green:T.red)}}>
               <div style={{fontSize:11,fontWeight:600,color:combinedSaves?T.green:T.red,marginBottom:3}}>{combinedSaves?"✓ Recommend: Combined D&D":"✗ Recommend: Separate Rates"}</div>
-              <div style={{fontSize:11,color:T.text,lineHeight:1.5}}>{rateRec}</div>
+              <div style={{fontSize:11,color:T.text,lineHeight:1.5}}>{"At "+(assumedDays!==null?assumedDays+"d assumed":combinedAvg.toFixed(1)+"d avg")+", combined FP ("+combinedFP+"d) is "+(combinedSaves?"not exceeded — combined rate absorbs all charges at this port.":"exceeded — use separate rates to isolate which category breaches at this port.")}</div>
             </div>
           </Card>
         </div>
-        {/* Free Period Ask */}
         <Card style={{marginBottom:14}}>
-          <div style={{fontSize:14,fontWeight:600,marginBottom:3}}>Free Period Ask — {activeLane.lane}</div>
-          <div style={{fontSize:11,color:T.sub,marginBottom:10}}>Lane-specific free period utilization. Bars in red = already in paid tier on this lane. Use these numbers in your negotiation.</div>
-          {fpAsks.map((r,i)=>{const pct=Math.round((r.laneAvg/r.fp)*100);const capped=Math.min(100,pct);const over=pct>100;const portAvgs=[portAvgODet,portAvgODem,portAvgDDem,portAvgDDet][i];const portPct=Math.round((portAvgs/r.fp)*100);return <div key={i} style={{marginBottom:12}}><div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}>
-            <span style={{fontSize:11,color:T.sub,fontWeight:500}}>{r.label}</span>
-            <div style={{display:"flex",gap:12,alignItems:"center"}}>
-              <span style={{fontSize:10,color:T.dim}}>{"Portfolio: "+portAvgs+"d ("+portPct+"%)"}</span>
-              <span style={{fontSize:12,fontWeight:700,color:over?T.red:pct>90?T.red:pct>70?T.amber:T.green}}>{r.laneAvg.toFixed(1)+"d / "+r.fp+"d ("+pct+"%)"}{ over&&<span style={{marginLeft:4,fontSize:10}}>⚠ OVER — ask for {Math.ceil(r.laneAvg-r.fp+1)}d more</span>}</span>
+          <div style={{fontSize:14,fontWeight:600,marginBottom:3}}>Free Period Ask — {p.port}</div>
+          <div style={{fontSize:11,color:T.sub,marginBottom:10}}>At-port (demurrage) and outside-port (detention) utilization. Red = already in paid tier. Use these numbers with the carrier or terminal.</div>
+          {metrics.map((m,i)=>{const pct=Math.round((m.laneAvg/m.fp)*100);const capped=Math.min(100,pct);const over=pct>100;return <div key={i} style={{marginBottom:14}}>
+            <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}>
+              <div><span style={{fontSize:11,fontWeight:600,color:T.text}}>{m.label}</span><span style={{fontSize:9,color:T.dim,marginLeft:8}}>{m.desc}</span></div>
+              <span style={{fontSize:12,fontWeight:700,color:over?T.red:pct>90?T.red:pct>70?T.amber:T.green}}>{m.laneAvg.toFixed(1)+"d / "+m.fp+"d ("+pct+"%)"}{over&&<span style={{marginLeft:6,fontSize:10}}>⚠ ask {Math.ceil(m.laneAvg-m.fp+1)}d more</span>}</span>
             </div>
-          </div>
-          <div style={{height:8,background:T.card2,borderRadius:4,overflow:"hidden",position:"relative"}}>
-            <div style={{height:"100%",width:Math.min(100,portPct)+"%",background:T.border,borderRadius:4,position:"absolute"}}/>
-            <div style={{height:"100%",width:capped+"%",background:over?T.red:pct>90?T.red:pct>70?T.amber:r.color,borderRadius:4,position:"absolute"}}/>
-          </div>
-          <div style={{fontSize:9,color:T.dim,marginTop:2}}>{"Grey = portfolio avg "+portAvgs+"d"}</div>
+            <div style={{height:8,background:T.card2,borderRadius:4,overflow:"hidden"}}>
+              <div style={{height:"100%",width:capped+"%",background:over?T.red:pct>90?T.red:pct>70?T.amber:m.color,borderRadius:4}}/>
+            </div>
           </div>;})}
         </Card>
-        {/* Negotiation Script */}
-        <Card style={{borderLeft:"3px solid "+T.blue,background:T.blueBg}}>
-          <div style={{fontSize:14,fontWeight:600,marginBottom:6}}>Negotiation Script — {activeLane.lane}</div>
-          <div style={{fontSize:11,color:T.sub,marginBottom:10}}>Use this in your carrier QBR or contract renewal conversation. Based on actual data from this lane.</div>
+        <Card style={{borderLeft:"3px solid "+T.blue,background:T.blueBg,marginBottom:14}}>
+          <div style={{fontSize:14,fontWeight:600,marginBottom:6}}>Negotiation Script — {p.port}</div>
+          <div style={{fontSize:11,color:T.sub,marginBottom:10}}>Use in your carrier or terminal QBR or contract renewal. Based on actual container data through {p.port}.</div>
           {scriptLines.map((line,i)=><div key={i} style={{display:"flex",gap:10,padding:"8px 0",borderBottom:i<scriptLines.length-1?"1px solid "+T.border+"60":"none"}}>
             <div style={{width:20,height:20,borderRadius:"50%",background:T.blue,color:"#fff",fontSize:10,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{i+1}</div>
             <div style={{fontSize:13,color:T.text,lineHeight:1.7}}>{line}</div>
           </div>)}
-          <NavLink text="See carrier performance → Carrier Intel" onClick={()=>setPage("carriers")}/>
+          <NavLink text="See carrier performance at this port → Carrier Intel" onClick={()=>setPage("carriers")}/>
         </Card>
       </>;
     })():(
     <>
-    {/* ── NEGOTIATION OPPORTUNITY TABLE (FIRST) ── */}
+    {/* PORT SELECTOR */}
+    <div style={{display:"flex",gap:6,marginBottom:12}}>
+      <Pill active={portTab==="pol"} onClick={()=>setPortTab("pol")} color={T.amber}>Origin Ports (POL)</Pill>
+      <Pill active={portTab==="pod"} onClick={()=>setPortTab("pod")} color={T.purple}>Destination Ports (POD)</Pill>
+    </div>
     {(()=>{
-      const topLanes=lanes.slice(0,5).map(l=>{
-        const combinedFP=BASE.costMatrix.dnd_origin.avgFP;
-        const gap=Math.max(0,+(l.totalDwell-combinedFP).toFixed(1));
-        const estSavings=Math.round(gap*l.containers*72);
-        const recDays=gap>0?Math.ceil(gap+1.5):0;
-        const action=gap>2?"Renegotiate immediately":gap>0?"Request extension":"Review surcharge %";
-        return{...l,gap,estSavings,recDays,action};
-      });
+      const ports=portTab==="pol"?portNegData.pols:portNegData.pods;
+      const isPol=portTab==="pol";
+      if(!ports.length)return<div style={{padding:20,textAlign:"center",color:T.dim,fontSize:11}}>No port data available.</div>;
       return <Card style={{marginBottom:16,borderLeft:"3px solid "+T.purple}}>
-        <div style={{fontSize:14,fontWeight:700,marginBottom:4}}>Negotiation Opportunity — Top 5 Lanes by Savings</div>
-        <div style={{fontSize:10,color:T.sub,marginBottom:12}}>Lanes where your actual dwell most exceeds your contracted free period. These are your highest-leverage renegotiation targets.</div>
+        <div style={{fontSize:14,fontWeight:700,marginBottom:2}}>Negotiation Opportunities by Port</div>
+        <div style={{fontSize:10,color:T.sub,marginBottom:12}}>D&D is charged <strong>at the port</strong> (demurrage) and <strong>outside the port</strong> (detention — at depots). Select a port to build the negotiation case.</div>
         <table style={{width:"100%",borderCollapse:"separate",borderSpacing:"0 4px",fontSize:11}}>
           <thead><tr style={{color:T.dim,fontSize:9,background:T.card2}}>
-            {["Lane","Avg Dwell","Free Period","Gap","Est. Savings","Rec. Extra Days","Action"].map(h=><th key={h} style={{padding:"6px 8px",textAlign:["Avg Dwell","Free Period","Gap","Est. Savings","Rec. Extra Days"].includes(h)?"right":"left",fontWeight:600,textTransform:"uppercase",letterSpacing:"0.4px"}}>{h}</th>)}
+            {["Port","Containers",isPol?"At-Port (Dem)":"At-Port (Dem)",isPol?"Outside Port (Det)":"Outside Port (Det)","Score","Risk",""].map((h,hi)=><th key={hi} style={{padding:"6px 8px",textAlign:["Containers","At-Port (Dem)","Outside Port (Det)","Score"].includes(h)?"right":"left",fontWeight:600,textTransform:"uppercase",letterSpacing:"0.4px",whiteSpace:"nowrap"}}>{h}</th>)}
           </tr></thead>
-          <tbody>{topLanes.map((l,i)=><tr key={i} style={{background:"#fff",cursor:"pointer"}} onClick={()=>setActiveLane(l)}>
-            <td style={{padding:"7px 8px",borderRadius:"6px 0 0 6px",fontFamily:"monospace",fontWeight:700}}>{l.lane}</td>
-            <td style={{padding:"7px 8px",textAlign:"right",fontWeight:600,color:l.gap>0?T.red:T.green}}>{l.totalDwell.toFixed(1)}d</td>
-            <td style={{padding:"7px 8px",textAlign:"right",color:T.sub}}>{BASE.costMatrix.dnd_origin.avgFP}d</td>
-            <td style={{padding:"7px 8px",textAlign:"right",fontWeight:700,color:l.gap>0?T.red:T.green}}>{l.gap>0?"+"+l.gap+"d":"OK"}</td>
-            <td style={{padding:"7px 8px",textAlign:"right",fontWeight:700,color:l.estSavings>0?T.purple:T.dim}}>{l.estSavings>0?fmt(l.estSavings):"—"}</td>
-            <td style={{padding:"7px 8px",textAlign:"right",color:T.sub}}>{l.recDays>0?l.recDays+"d extra":"No change"}</td>
-            <td style={{padding:"7px 8px",borderRadius:"0 6px 6px 0"}}><span style={{fontSize:9,fontWeight:700,color:l.gap>2?T.red:l.gap>0?T.amber:T.green}}>{l.action}</span><span style={{fontSize:9,color:T.blue,marginLeft:8,fontWeight:600}}>View details →</span></td>
-          </tr>)}
+          <tbody>{ports.map((p,i)=>{
+            const r=p.score>8?{t:"High",c:T.red}:p.score>5?{t:"Monitor",c:T.amber}:{t:"OK",c:T.green};
+            const demAvg=isPol?p.avgODem:p.avgDDem;const detAvg=isPol?p.avgODet:p.avgDDet;
+            const demFP=isPol?BASE.costMatrix.demurrage_origin.avgFP:BASE.costMatrix.demurrage_destination.avgFP;
+            const detFP=isPol?BASE.costMatrix.detention_origin.avgFP:BASE.costMatrix.detention_destination.avgFP;
+            return <tr key={i} style={{background:"#fff",cursor:"pointer"}} onClick={()=>setActivePort({...p,side:isPol?"Origin":"Dest"})} onMouseEnter={e=>e.currentTarget.style.background=T.blueBg} onMouseLeave={e=>e.currentTarget.style.background="#fff"}>
+              <td style={{padding:"7px 8px",borderRadius:"6px 0 0 6px",fontFamily:"monospace",fontWeight:700}}>{p.port}</td>
+              <td style={{padding:"7px 8px",textAlign:"right",color:T.sub}}>{p.containers}</td>
+              <td style={{padding:"7px 8px",textAlign:"right",fontWeight:600,color:demAvg>demFP?T.red:T.green}}>{demAvg.toFixed(1)}d{demAvg>demFP&&<span style={{fontSize:9,marginLeft:3}}>⚠</span>}</td>
+              <td style={{padding:"7px 8px",textAlign:"right",fontWeight:600,color:detAvg>detFP?T.red:T.green}}>{detAvg.toFixed(1)}d{detAvg>detFP&&<span style={{fontSize:9,marginLeft:3}}>⚠</span>}</td>
+              <td style={{padding:"7px 8px",textAlign:"right",fontWeight:700,color:r.c}}>{p.score}</td>
+              <td style={{padding:"7px 8px"}}><SolidBadge color={r.c}>{r.t}</SolidBadge></td>
+              <td style={{padding:"7px 8px",borderRadius:"0 6px 6px 0"}}><span style={{fontSize:9,fontWeight:700,color:T.blue}}>Build case →</span></td>
+            </tr>;
+          })}
           </tbody>
         </table>
-        <div style={{fontSize:9,color:T.dim,marginTop:6}}>Click any lane to open the full negotiation analysis. Est. Savings assumes extra free days eliminate current overage cost at $72/container/day.</div>
+        <div style={{fontSize:9,color:T.dim,marginTop:6}}>Click any port to open the negotiation analysis: benchmark, rate structure recommendation, and a ready-made script.</div>
       </Card>;
     })()}
 
-    <ChartBox title="Portfolio — Surcharge Costs by Category" sub="Compare all 8 surcharge buckets across the portfolio. Select a lane above to drill into negotiation specifics." h={280}><ResponsiveContainer><BarChart data={cats} layout="vertical"><CartesianGrid strokeDasharray="3 3" stroke={T.border+"60"} vertical={false}/><XAxis type="number" stroke={T.dim} fontSize={10} tickFormatter={v=>fmt(v)}/><YAxis type="category" dataKey="name" stroke={T.dim} fontSize={9} width={160}/><Tooltip formatter={v=>fmt(v)}/><Bar dataKey="total" name="Total" radius={[0,4,4,0]}>{cats.map((c,i)=><Cell key={i} fill={c.color}/>)}</Bar></BarChart></ResponsiveContainer></ChartBox>
+    <ChartBox title="Portfolio — Surcharge Costs by Category" sub="Compare all 8 surcharge buckets across the portfolio. Select a port above to build your negotiation case." h={280}><ResponsiveContainer><BarChart data={cats} layout="vertical"><CartesianGrid strokeDasharray="3 3" stroke={T.border+"60"} vertical={false}/><XAxis type="number" stroke={T.dim} fontSize={10} tickFormatter={v=>fmt(v)}/><YAxis type="category" dataKey="name" stroke={T.dim} fontSize={9} width={160}/><Tooltip formatter={v=>fmt(v)}/><Bar dataKey="total" name="Total" radius={[0,4,4,0]}>{cats.map((c,i)=><Cell key={i} fill={c.color}/>)}</Bar></BarChart></ResponsiveContainer></ChartBox>
     <Card style={{marginTop:12}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}><div><div style={{fontSize:14,fontWeight:600}}>Detailed Surcharge Table</div><div style={{fontSize:11,color:T.sub}}>Per-container cost by surcharge type. Higher $/container = higher priority for action.</div></div><DlBtn onClick={()=>dlCSV("surcharge_detail_"+new Date().toISOString().slice(0,10),["Category","Side","Total","Containers","Free Period","$/Container"],cats.map(c=>[c.name,c.side,c.total,c.containers,c.avgFP+"d",c.containers>0?Math.round(c.total/c.containers):0]))}/></div>
       <table style={{width:"100%",borderCollapse:"separate",borderSpacing:"0 4px",fontSize:11}}><thead><tr style={{color:T.dim,fontSize:10,textAlign:"left",background:T.card2}}>{["Category","Side","Total","Containers","FP","$/Container"].map(h=><th key={h} style={{padding:"7px 8px",fontWeight:600,textTransform:"uppercase",letterSpacing:"0.5px",textAlign:["Total","$/Container"].includes(h)?"right":"left"}}>{h}</th>)}</tr></thead>
@@ -1740,22 +1727,21 @@ function SurchargePage({setPage,selectedLane,clearLane}){
     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginTop:8}}>
       {[{side:"Origin",det:detO,dem:demO,dnd:dndO,detFPNum:BASE.costMatrix.detention_origin.avgFP,demFPNum:BASE.costMatrix.demurrage_origin.avgFP,dndFPNum:BASE.costMatrix.dnd_origin.avgFP,detAvg:BASE.stageDays.origin_detention.avg,demAvg:BASE.stageDays.origin_demurrage.avg},{side:"Dest",det:detD,dem:demD,dnd:dndD,detFPNum:BASE.costMatrix.detention_destination.avgFP,demFPNum:BASE.costMatrix.demurrage_destination.avgFP,dndFPNum:BASE.costMatrix.dnd_destination.avgFP,detAvg:BASE.stageDays.dest_detention.avg,demAvg:BASE.stageDays.dest_demurrage.avg}].map(s=>{const sepTotal=s.det+s.dem;const prem=s.dnd>sepTotal?Math.round((s.dnd-sepTotal)/sepTotal*100):0;const combinedSaves=assumedDays!==null?assumedDays<s.dndFPNum:null;const cheaper=assumedDays!==null?(combinedSaves?"Combined":"Separate"):(s.dnd>sepTotal?"Separate":"Combined");const totalAvg=s.detAvg+s.demAvg;const detRatio=totalAvg>0?s.detAvg/totalAvg:0.5;const effDet=assumedDays!==null?+(assumedDays*detRatio).toFixed(1):null;const effDem=assumedDays!==null?+(assumedDays*(1-detRatio)).toFixed(1):null;return <Card key={s.side}><div style={{fontSize:14,fontWeight:600,marginBottom:10}}>{"Combined vs Separate — "+s.side}</div>
         <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginBottom:8}}>{[{t:"Detention",fpNum:s.detFPNum,eff:effDet,cost:s.det,c:T.amber},{t:"Demurrage",fpNum:s.demFPNum,eff:effDem,cost:s.dem,c:T.purple},{t:"Combined",fpNum:s.dndFPNum,eff:assumedDays,cost:s.dnd,c:T.red}].map((x,i)=>{const withinFP=assumedDays!==null?x.eff<x.fpNum:null;const borderColor=assumedDays!==null?(withinFP?T.green:T.red):x.c;return <div key={i} style={{background:T.card2,borderRadius:10,padding:12,borderTop:"3px solid "+borderColor,position:"relative"}}>{x.t===cheaper&&<div style={{position:"absolute",top:4,right:4,fontSize:9,color:T.green,fontWeight:700}}>{"✓ Cheaper"}</div>}<div style={{fontSize:9,fontWeight:700,color:T.sub,marginBottom:4}}>{x.t}</div><div style={{fontSize:18,fontWeight:700}}>{x.fpNum+"d"}<span style={{fontSize:10,color:T.sub,fontWeight:400}}>{" free"}</span></div>{assumedDays!==null?<div style={{marginTop:6,padding:"3px 7px",borderRadius:5,display:"inline-block",background:withinFP?T.greenBg:T.redBg,fontSize:10,fontWeight:700,color:withinFP?T.green:T.red}}>{withinFP?"✓ Within FP":"✗ Over FP"}</div>:<div style={{fontSize:13,fontWeight:700,color:x.c,marginTop:2}}>{fmt(x.cost)}</div>}</div>;})}</div>
-        <div style={{padding:8,background:cheaper==="Combined"?T.greenBg:T.redBg,borderRadius:7,borderLeft:"3px solid "+(cheaper==="Combined"?T.green:T.red)}}><div style={{fontSize:12,color:T.text}}>{assumedDays!==null?(combinedSaves?"At "+assumedDays+"d assumed dwell, combined FP ("+s.dndFPNum+"d) covers the total. Combined rate recommended for "+s.side.toLowerCase()+" lanes.":"At "+assumedDays+"d assumed dwell, combined FP ("+s.dndFPNum+"d) does not cover the total. Separate rates reduce exposure on "+s.side.toLowerCase()+" lanes."):(prem>0?"Combined costs "+prem+"% MORE than separate ("+fmt(s.dnd)+" vs "+fmt(sepTotal)+"). Evaluate switching to separate rates on "+s.side.toLowerCase()+" lanes.":"Combined is cheaper than separate at "+s.side.toLowerCase()+".")}</div></div>
+        <div style={{padding:8,background:cheaper==="Combined"?T.greenBg:T.redBg,borderRadius:7,borderLeft:"3px solid "+(cheaper==="Combined"?T.green:T.red)}}><div style={{fontSize:12,color:T.text}}>{assumedDays!==null?(combinedSaves?"At "+assumedDays+"d assumed dwell, combined FP ("+s.dndFPNum+"d) covers the total. Combined rate recommended for "+s.side.toLowerCase()+" side.":"At "+assumedDays+"d assumed dwell, combined FP ("+s.dndFPNum+"d) does not cover the total. Separate rates reduce exposure on "+s.side.toLowerCase()+" side."):(prem>0?"Combined costs "+prem+"% MORE than separate ("+fmt(s.dnd)+" vs "+fmt(sepTotal)+"). Evaluate switching to separate rates on "+s.side.toLowerCase()+" side.":"Combined is cheaper than separate at "+s.side.toLowerCase()+".")}</div></div>
       </Card>;})}
     </div>
     <Card style={{marginTop:14}}>
-      <div style={{fontSize:14,fontWeight:600,marginBottom:3}}>Free Period Utilization — Portfolio</div><div style={{fontSize:11,color:T.sub,marginBottom:10}}>How much of your free period is consumed across all lanes? {">"}90% = zero buffer, negotiate more days.</div>
-      {[{label:"Origin Detention",avg:4.8,fp:5.1,color:T.amber},{label:"Origin Demurrage",avg:0.87,fp:3.1,color:T.purple},{label:"Dest Demurrage",avg:2.6,fp:3.0,color:T.green},{label:"Dest Detention",avg:5.51,fp:6.0,color:T.red}].map((r,i)=>{const pct=Math.round((r.avg/r.fp)*100);const capped=Math.min(100,pct);const over=pct>100;return <div key={i} style={{marginBottom:10}}><div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}><span style={{fontSize:11,color:T.sub}}>{r.label}</span><span style={{fontSize:12,fontWeight:700,color:over?T.red:pct>90?T.red:pct>70?T.amber:T.green}}>{r.avg+"d / "+r.fp+"d ("+pct+"%)"}{over&&" ⚠ OVER"}</span></div><div style={{height:7,background:T.card2,borderRadius:4,overflow:"hidden",border:"none",boxShadow:"inset 0 1px 2px rgba(0,0,0,.06)",position:"relative"}}><div style={{height:"100%",width:capped+"%",background:over?T.red:pct>90?T.red:pct>70?T.amber:T.green,borderRadius:4}}/></div></div>;})}
-      <Insight text={(()=>{const detAvg=BASE.stageDays.origin_detention.avg;const detFP=BASE.costMatrix.detention_origin.avgFP;const util=Math.round(detAvg/detFP*100);const newFP=detFP+1;const newUtil=Math.round(detAvg/newFP*100);return "Origin Detention at "+util+"% utilization ("+detAvg+"d avg vs "+detFP+"d free). Negotiating 1 extra free day ("+detFP+"d → "+newFP+"d) reduces utilization to ~"+newUtil+"%. Use this data in your next carrier contract discussion.";})()}/>
+      <div style={{fontSize:14,fontWeight:600,marginBottom:3}}>Free Period Utilization — Portfolio</div><div style={{fontSize:11,color:T.sub,marginBottom:10}}>How much of your free period is consumed? {">"}90% = zero buffer, negotiate more days.</div>
+      {[{label:"Origin Detention (outside port)",avg:4.8,fp:5.1,color:T.amber},{label:"Origin Demurrage (at port)",avg:0.87,fp:3.1,color:T.purple},{label:"Dest Demurrage (at port)",avg:2.6,fp:3.0,color:T.green},{label:"Dest Detention (outside port)",avg:5.51,fp:6.0,color:T.red}].map((r,i)=>{const pct=Math.round((r.avg/r.fp)*100);const capped=Math.min(100,pct);const over=pct>100;return <div key={i} style={{marginBottom:10}}><div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}><span style={{fontSize:11,color:T.sub}}>{r.label}</span><span style={{fontSize:12,fontWeight:700,color:over?T.red:pct>90?T.red:pct>70?T.amber:T.green}}>{r.avg+"d / "+r.fp+"d ("+pct+"%)"}{over&&" ⚠ OVER"}</span></div><div style={{height:7,background:T.card2,borderRadius:4,overflow:"hidden",border:"none",boxShadow:"inset 0 1px 2px rgba(0,0,0,.06)",position:"relative"}}><div style={{height:"100%",width:capped+"%",background:over?T.red:pct>90?T.red:pct>70?T.amber:T.green,borderRadius:4}}/></div></div>;})}
+      <Insight text={(()=>{const detAvg=BASE.stageDays.origin_detention.avg;const detFP=BASE.costMatrix.detention_origin.avgFP;const util=Math.round(detAvg/detFP*100);const newFP=detFP+1;const newUtil=Math.round(detAvg/newFP*100);return "Origin Detention (outside port) at "+util+"% utilization ("+detAvg+"d avg vs "+detFP+"d free). Negotiating 1 extra free day ("+detFP+"d → "+newFP+"d) reduces utilization to ~"+newUtil+"%.";})()}/>
     </Card>
-    {/* ── WHAT SHOULD I DO NEXT? ── */}
     <div style={{marginTop:16,marginBottom:4}}>
       <div style={{fontSize:10,fontWeight:700,color:T.sub,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:10}}>What should I do next?</div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10}}>
         {[
-          {title:"Click a lane above to prepare",sub:"The Negotiation Opportunity table above shows your top 5 lanes by savings. Click any row to open the full lane-level negotiation analysis with a ready-made script.",color:T.purple,icon:"📋"},
-          {title:"Cross-reference with Carrier Intel",sub:"A lane that is over free period may have a carrier-driven root cause. Check if the worst carrier on that lane is a systematic performer.",color:T.blue,icon:"🚢",page:"carriers"},
-          {title:"Track next month's trend",sub:"After a successful renegotiation, monitor the Structural Leakage Analysis to confirm dwell on that lane drops below the new free period threshold.",color:T.amber,icon:"📈",page:"history"},
+          {title:"Select a port above to prepare",sub:"Click any origin or destination port to open the full negotiation analysis with benchmark, rate structure recommendation, and a ready-made script.",color:T.purple,icon:"🏭"},
+          {title:"Cross-reference with Carrier Intel",sub:"A port that is over free period may have a carrier-driven root cause. Check if the worst carrier at that port is a systematic performer.",color:T.blue,icon:"🚢",page:"carriers"},
+          {title:"Track next month's trend",sub:"After a successful renegotiation, monitor Structural Leakage to confirm dwell at that port drops below the new free period threshold.",color:T.amber,icon:"📈",page:"history"},
         ].map((d,i)=><Card key={i} style={{padding:"14px 16px",cursor:d.page?"pointer":undefined,borderTop:"2px solid "+d.color}} onClick={()=>d.page&&setPage(d.page)}>
           <div style={{fontSize:10,fontWeight:700,color:d.color,marginBottom:4}}>{d.icon} {d.title}</div>
           <div style={{fontSize:10,color:T.sub,lineHeight:1.5,marginBottom:d.page?8:0}}>{d.sub}</div>
@@ -1770,8 +1756,8 @@ function SurchargePage({setPage,selectedLane,clearLane}){
 // ═══ MAIN APP ═══
 export default function App(){
   const[page,setPage]=useState("home");
-  const[selectedLane,setSelectedLane]=useState(null);
-  const navToSurcharges=(lane)=>{setSelectedLane(lane);setPage("surcharges");};
+  const[selectedPort,setSelectedPort]=useState(null);
+  const navToSurchargesPort=(port)=>{setSelectedPort(port);setPage("surcharges");};
   return (<div style={{background:T.bg,minHeight:"100vh",fontFamily:"'Roboto','Arial',sans-serif",color:T.text}}>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;800&display=swap" rel="stylesheet"/>
     <TopNav page={page} setPage={setPage}/>
@@ -1780,8 +1766,8 @@ export default function App(){
       {page==="costs"&&<CostPage setPage={setPage}/>}
       {page==="carriers"&&<CarrierPage setPage={setPage}/>}
       {page==="optimizer"&&<OptimizerPage/>}
-      {page==="history"&&<HistoryPage setPage={setPage} navToSurcharges={navToSurcharges}/>}
-      {page==="surcharges"&&<SurchargePage setPage={setPage} selectedLane={selectedLane} clearLane={()=>setSelectedLane(null)}/>}
+      {page==="history"&&<HistoryPage setPage={setPage} navToSurchargesPort={navToSurchargesPort}/>}
+      {page==="surcharges"&&<SurchargePage setPage={setPage} selectedPort={selectedPort} clearPort={()=>setSelectedPort(null)}/>}
     </div>
   </div>);
 }
