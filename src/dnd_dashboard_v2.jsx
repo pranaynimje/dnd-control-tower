@@ -82,6 +82,11 @@ function HomePage({setPage}){
   const topBurn=CDATA.topRisk.slice(0,5).reduce((s,c)=>s+Math.round((c.cost3d-c.cost)/3),0);
 
   return (<div style={{padding:"20px 28px",width:"100%",boxSizing:"border-box"}}>
+    <div style={{background:T.amberBg,border:"1px solid "+T.amber+"50",borderRadius:8,padding:"8px 14px",marginBottom:14,borderLeft:"3px solid "+T.amber,display:"flex",alignItems:"center",gap:8}}>
+      <AlertTriangle size={13} color={T.amber}/>
+      <span style={{fontSize:11,fontWeight:600,color:T.amber}}>Estimates only — </span>
+      <span style={{fontSize:11,color:T.sub}}>All cost figures are based on dwell rates, not carrier billing data. Reconcile with actual invoices for financial reporting.</span>
+    </div>
     {/* ── 1. TODAY'S RISK SNAPSHOT ── */}
     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:12,marginBottom:14}}>
       {/* Containers Requiring Action */}
@@ -106,7 +111,10 @@ function HomePage({setPage}){
       </Card>
       {/* Total Exposure */}
       <Card style={{padding:"16px 20px",borderLeft:"4px solid #1A1D26"}}>
-        <div style={{fontSize:9,fontWeight:600,color:T.sub,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:4}}>Total D&D Exposure</div>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+          <div style={{fontSize:9,fontWeight:600,color:T.sub,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:4}}>Total D&D Exposure (est.)</div>
+          <div style={{fontSize:8,color:T.dim,fontStyle:"italic"}}>{BASE.monthlyCost[BASE.monthlyCost.length-1].month}</div>
+        </div>
         <div style={{display:"flex",alignItems:"baseline",gap:10}}>
           <span style={{fontSize:28,fontWeight:800,color:T.text,letterSpacing:"-0.5px"}}>{fmt(BASE.grandTotal)}</span>
           <span style={{fontSize:11,fontWeight:600,color:mom.color}}>{mom.arrow} {Math.abs(mom.v)}% MoM</span>
@@ -531,8 +539,6 @@ function CarrierPage({setPage}){
       totalO:tO,totalD:tD,beyondFP,beyondFPDest,pastFPCount,pastFPPct,avgDaysBeyond,estCost,dailyBurn,tierIn,tier1,tier2,tier3,risk};
   }).sort((a,b)=>b.totalO-a.totalO),[]);
 
-  const selStyle={border:"1px solid "+T.border,borderRadius:8,padding:"6px 12px",fontSize:11,color:T.text,background:"#fff",cursor:"pointer",outline:"none",fontWeight:600};
-
   const rFromZ=z=>Math.min(14,3+Math.sqrt(z/60));
   const riskCol=r=>r>70?T.red:r>40?T.amber:T.green;
 
@@ -556,10 +562,10 @@ function CarrierPage({setPage}){
         <div style={{display:"flex",alignItems:"center",gap:5,marginLeft:8}}><svg width={16} height={10}><circle cx={5} cy={5} r={3} fill={T.dim} fillOpacity={0.5}/><circle cx={13} cy={5} r={5} fill={T.dim} fillOpacity={0.5}/></svg><span style={{fontSize:9,color:T.sub}}>Bubble size = container volume</span></div>
       </div>
       <div style={{position:"relative",height:200}}>
-        <div style={{position:"absolute",top:4,right:4,fontSize:8,fontWeight:700,color:T.red,opacity:.65,pointerEvents:"none",zIndex:5}}>Both Over ▲</div>
-        <div style={{position:"absolute",top:4,left:48,fontSize:8,fontWeight:700,color:T.amber,opacity:.65,pointerEvents:"none",zIndex:5}}>▲ Dest</div>
-        <div style={{position:"absolute",bottom:24,right:4,fontSize:8,fontWeight:700,color:T.amber,opacity:.65,pointerEvents:"none",zIndex:5}}>Origin ▶</div>
-        <div style={{position:"absolute",bottom:24,left:48,fontSize:8,fontWeight:700,color:T.green,opacity:.65,pointerEvents:"none",zIndex:5}}>◉ Best</div>
+        <div style={{position:"absolute",top:6,right:6,fontSize:9,fontWeight:700,color:T.red,background:T.redBg,borderRadius:4,padding:"1px 5px",pointerEvents:"none",zIndex:5}}>⚠ Both Over</div>
+        <div style={{position:"absolute",top:6,left:52,fontSize:9,fontWeight:700,color:T.amber,background:T.amberBg,borderRadius:4,padding:"1px 5px",pointerEvents:"none",zIndex:5}}>▲ Dest Only</div>
+        <div style={{position:"absolute",bottom:26,right:6,fontSize:9,fontWeight:700,color:T.amber,background:T.amberBg,borderRadius:4,padding:"1px 5px",pointerEvents:"none",zIndex:5}}>Origin Only ▶</div>
+        <div style={{position:"absolute",bottom:26,left:52,fontSize:9,fontWeight:700,color:T.green,background:T.greenBg,borderRadius:4,padding:"1px 5px",pointerEvents:"none",zIndex:5}}>✓ Best</div>
         <ResponsiveContainer width="100%" height={200}>
           <ScatterChart margin={{top:14,right:18,bottom:24,left:4}}>
             <CartesianGrid strokeDasharray="3 3" stroke={T.border+"50"}/>
@@ -587,9 +593,11 @@ function CarrierPage({setPage}){
               const r=rFromZ(payload.z);
               const overX=payload.x>cat.fpX;const overY=payload.y>cat.fpY;
               const col=overX&&overY?T.red:overX||overY?T.amber:T.green;
+              const isSel=selCarrier===payload.name;
               return <g>
-                <circle cx={cx} cy={cy} r={r} fill={col} fillOpacity={0.72} stroke="#fff" strokeWidth={1.3}/>
-                <text x={cx} y={cy-r-3} textAnchor="middle" fontSize={8} fontWeight={700} fill={T.text}>{payload.name}</text>
+                {isSel&&<circle cx={cx} cy={cy} r={r+6} fill="none" stroke={T.blue} strokeWidth={2} strokeDasharray="4 2"/>}
+                <circle cx={cx} cy={cy} r={r} fill={col} fillOpacity={isSel?0.95:0.72} stroke="#fff" strokeWidth={isSel?2:1.3}/>
+                <text x={cx} y={cy-r-(isSel?10:3)} textAnchor="middle" fontSize={isSel?9:8} fontWeight={isSel?800:700} fill={isSel?T.blue:T.text}>{payload.name}</text>
               </g>;
             }}/>
           </ScatterChart>
@@ -640,16 +648,7 @@ if(view==="exceeding"){
   const viewLabels={scatter:"Origin vs Destination scatter — quadrant view per charge category. Bubbles sized by container volume, colored by carrier risk score.",exceeding:"Container count within vs past free period per carrier, by charge category.",cost:"Estimated D&D cost exposure by carrier (directional estimate, not billing data)."};
 
   return (<div style={{padding:"20px 28px",width:"100%",boxSizing:"border-box"}}>
-    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12,flexWrap:"wrap",gap:10}}>
-      <SH title="Carrier Intel" sub="Who is causing D&D? Find the carrier to escalate operationally and the contract to renegotiate."/>
-      <div style={{display:"flex",alignItems:"center",gap:8}}>
-        <span style={{fontSize:10,fontWeight:600,color:T.sub,textTransform:"uppercase"}}>View</span>
-        <select value={view} onChange={e=>{setView(e.target.value);setSelCarrier(null);}} style={selStyle}>
-          {CARRIER_VIEWS.map(v=><option key={v.id} value={v.id}>{v.label}</option>)}
-        </select>
-        {selCarrier&&<span style={{fontSize:9,color:T.dim,marginLeft:4}}>Changing view resets carrier selection.</span>}
-      </div>
-    </div>
+    <SH title="Carrier Intel" sub="Who is causing D&D? Find the carrier to escalate operationally and the contract to renegotiate."/>
 
     {/* ── CARRIER RISK SNAPSHOT ── */}
     {(()=>{
@@ -694,7 +693,7 @@ if(view==="exceeding"){
             <thead><tr style={{color:T.dim,fontSize:9}}>
               {["Lane","Carriers","Containers","Avg O.Det","Avg D.Det","Origin Status","Dest Status",""].map(h=><th key={h} style={{padding:"4px 8px",textAlign:["Containers","Avg O.Det","Avg D.Det"].includes(h)?"right":"left",fontWeight:600,textTransform:"uppercase",letterSpacing:"0.4px"}}>{h}</th>)}
             </tr></thead>
-            <tbody>{lanes.map((l,i)=>{
+            <tbody>{lanes.length===0?<tr><td colSpan={8} style={{padding:"16px",textAlign:"center",color:T.dim,fontSize:10}}>{selCarrier?"No top-10 lanes found for "+selCarrier+". This carrier may operate on routes outside the top 10 by volume.":"No lane data available."}</td></tr>:lanes.map((l,i)=>{
               const os=oStat(l.avgODet);const ds=dStat(l.avgDDet);
               const bothOver=os.c===T.red&&ds.c===T.red;
               return <tr key={i} style={{background:T.card2,borderLeft:bothOver?"3px solid "+T.red:"3px solid transparent"}}>
@@ -789,13 +788,17 @@ if(view==="exceeding"){
       <div style={{fontSize:10,color:T.dim,marginTop:2}}>Origin vs Destination dwell scatter — all 4 charge categories. Bubbles above the reference line are over free period.</div>
     </div>
     <Card style={{marginBottom:12}}>
-      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
+      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8,flexWrap:"wrap"}}>
         <span style={{fontSize:10,fontWeight:600,color:T.sub,textTransform:"uppercase"}}>View</span>
         <select value={view} onChange={e=>{setView(e.target.value);setSelCarrier(null);}} style={{border:"1px solid "+T.border,borderRadius:8,padding:"4px 10px",fontSize:10,color:T.text,background:"#fff",cursor:"pointer",outline:"none",fontWeight:600}}>
           {CARRIER_VIEWS.map(v=><option key={v.id} value={v.id}>{v.label}</option>)}
         </select>
-        <span style={{fontSize:10,color:T.dim,marginLeft:4}}>{viewLabels[view]}</span>
+        <span style={{fontSize:10,color:T.dim}}>{viewLabels[view]}</span>
+        {selCarrier&&<span style={{fontSize:9,color:T.blue,fontWeight:600,marginLeft:4}}>Showing {selCarrier} highlighted (dashed ring).</span>}
       </div>
+      {view==="scatter"&&<div style={{background:T.card2,borderRadius:8,padding:"7px 12px",marginBottom:8,fontSize:10,color:T.sub,lineHeight:1.5,border:"1px solid "+T.border+"60"}}>
+        <span style={{fontWeight:600,color:T.text}}>How to read: </span>X-axis = origin dwell days, Y-axis = destination dwell days. Dashed lines mark contracted free period thresholds. Bubbles in the <span style={{color:T.red,fontWeight:600}}>top-right</span> exceed free period on both sides. Bottom-left = within free period.{!selCarrier&&<span style={{color:T.blue,fontWeight:600}}> Click any carrier row in the scorecard above to highlight them here.</span>}
+      </div>}
       {view!=="lanes"&&<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
         {SCATTER_CATS.map(cat=>(
           <div key={cat.id} style={{background:T.card2,borderRadius:10,padding:"10px 12px"}}>
@@ -814,7 +817,7 @@ if(view==="exceeding"){
             <thead><tr style={{color:T.dim,fontSize:9}}>
               {["Lane","Carriers","Containers","Avg O.Det","Avg D.Det","Origin Status","Dest Status",""].map(h=><th key={h} style={{padding:"4px 8px",textAlign:["Containers","Avg O.Det","Avg D.Det"].includes(h)?"right":"left",fontWeight:600,textTransform:"uppercase",letterSpacing:"0.4px"}}>{h}</th>)}
             </tr></thead>
-            <tbody>{lanes.map((l,i)=>{
+            <tbody>{lanes.length===0?<tr><td colSpan={8} style={{padding:"16px",textAlign:"center",color:T.dim,fontSize:10}}>{selCarrier?"No top-10 lanes found for "+selCarrier+". This carrier may operate on routes outside the top 10 by volume.":"No lane data available."}</td></tr>:lanes.map((l,i)=>{
               const os=oStat(l.avgODet);const ds=dStat(l.avgDDet);
               const bothOver=os.c===T.red&&ds.c===T.red;
               return <tr key={i} style={{background:T.card2,borderLeft:bothOver?"3px solid "+T.red:"3px solid transparent"}}>
@@ -931,7 +934,7 @@ function OptimizerPage(){
       const key=c.cat in CAT_META?c.cat:"Combined D&D";
       if(!grouped[key])grouped[key]={total:0,count:0,totalDaily:0};
       const daily=Math.max(0,Math.round((c.cost3d-c.cost)/3));
-      const todayCost=daily*Math.max(1,predDays);
+      const todayCost=predDays>0?daily*predDays:c.cost;
       grouped[key].total+=todayCost;
       grouped[key].count+=1;
       grouped[key].totalDaily+=daily;
@@ -944,7 +947,7 @@ function OptimizerPage(){
 
   const allContainers=useMemo(()=>CDATA.topRisk.map(c=>{
     const d3=c.cost3d-c.cost;const d7=c.cost7d-c.cost;const fp=5.1;const daily=Math.max(0,Math.round(d3/3));
-    const todayCost=daily*Math.max(1,predDays);
+    const todayCost=predDays>0?daily*predDays:c.cost;
     const fpStatus=c.oDet>fp?"Expired":c.oDet>fp-0.5?"Expiring Today":c.oDet>fp-2?"Expiring 48h":"Green";
     const side=["Gate Out POD","Discharge POD","Empty Return"].includes(c.stage)?"Destination":"Origin";
     const lane=c.po+"-"+c.pd;
@@ -1045,7 +1048,7 @@ function OptimizerPage(){
     const acc={Origin:{Detention:0,Demurrage:0,Storage:0,"Combined D&D":0},Dest:{Detention:0,Demurrage:0,Storage:0,"Combined D&D":0}};
     CDATA.topRisk.forEach(c=>{
       const daily=Math.max(0,Math.round((c.cost3d-c.cost)/3));
-      const val=daily*Math.max(1,predDays);
+      const val=predDays>0?daily*predDays:c.cost;
       const sideKey=["Gate Out POD","Discharge POD","Empty Return"].includes(c.stage)?"Dest":"Origin";
       const catKey=c.cat in acc.Origin?c.cat:"Combined D&D";
       acc[sideKey][catKey]+=val;
@@ -1074,7 +1077,7 @@ function OptimizerPage(){
       const potSavings=allContainers.slice(0,25).reduce((s,c)=>s+c.todayCost,0);
       return <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:10,marginBottom:16}}>
         {[
-          {label:"Total Exposure",value:fmt(totalExp),sub:"if no action taken today",color:T.red},
+          {label:predDays===0?"Total Accumulated Cost":"Projected Exposure",value:fmt(totalExp),sub:predDays===0?"accumulated to date (est.)":"if no action by "+predDate,color:T.red},
           {label:"Containers at Risk",value:atRisk,sub:"past or near free period threshold",color:T.amber},
           {label:"Daily Burn Rate",value:totalBurn>0?fmt(totalBurn)+"/d":"—",sub:"accumulating right now across portfolio",color:T.red},
           {label:"Potential Savings (Top 25)",value:potSavings>0?fmt(potSavings):"—",sub:"if top 25 containers cleared today",color:T.green},
@@ -1096,7 +1099,7 @@ function OptimizerPage(){
       <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,flex:1}}>
         <div style={{background:"#fff",borderRadius:8,padding:"8px 12px",borderTop:"2px solid "+T.blue}}><div style={{fontSize:9,color:T.sub}}>Days from Reference</div><div style={{fontSize:22,fontWeight:700,color:T.blue}}>{predDays}</div></div>
         <div style={{background:"#fff",borderRadius:8,padding:"8px 12px",borderTop:"2px solid "+T.text}}><div style={{fontSize:9,color:T.sub}}>Containers Affected</div><div style={{fontSize:22,fontWeight:700,color:T.text}}>{allContainers.filter(c=>c.fpStatus!=="Green").length+Math.round(predDays*4.2)}</div></div>
-        <div style={{background:T.redBg,borderRadius:8,padding:"8px 12px",borderTop:"2px solid "+T.red}}><div style={{fontSize:9,color:T.red}}>If No Action</div><div style={{fontSize:22,fontWeight:700,color:T.red}}>{fmt(allContainers.reduce((s,c)=>s+c.todayCost,0))}</div></div>
+        <div style={{background:T.redBg,borderRadius:8,padding:"8px 12px",borderTop:"2px solid "+T.red}}><div style={{fontSize:9,color:T.red}}>Accumulated Cost (est.)</div><div style={{fontSize:22,fontWeight:700,color:T.red}}>{fmt(allContainers.reduce((s,c)=>s+c.todayCost,0))}</div></div>
       </div>
     </div>
     {/* COST FORECAST */}
@@ -1168,8 +1171,8 @@ function OptimizerPage(){
       const presets=[
         {label:"High Savings",icon:"💰",desc:"Highest avoidable cost today",apply:()=>{setAFpStatus("All");setACat("All");setARisk("All");setACostBand("High Impact");setATopN("25");setBFpStatus("Expired");setBCat("All");setBRisk("High");setBCostBand("All");setBTopN("All");}},
         {label:"High Risk",icon:"🚨",desc:"Expired + High risk only",apply:()=>{setAFpStatus("Expired");setACat("All");setARisk("High");setACostBand("All");setATopN("All");setBFpStatus("Expiring Today");setBCat("All");setBRisk("All");setBCostBand("All");setBTopN("All");}},
-        {label:"Destination Focus",icon:"🎯",desc:"Destination-side containers",apply:()=>{setAFpStatus("All");setACat("Detention");setARisk("All");setACostBand("All");setATopN("All");setBFpStatus("All");setBCat("Demurrage");setBRisk("All");setBCostBand("All");setBTopN("All");}},
-        {label:"Carrier Focus",icon:"🚢",desc:"Filter by carrier to compare",apply:()=>{resetAll();}},
+        {label:"Port vs Depot",icon:"🎯",desc:"Port charges (Demurrage) vs depot charges (Detention)",apply:()=>{setAFpStatus("All");setACat("Demurrage");setARisk("All");setACostBand("All");setATopN("All");setACarF("All");setAPolF("All");setAPodF("All");setBFpStatus("All");setBCat("Detention");setBRisk("All");setBCostBand("All");setBTopN("All");setBCarF("All");setBPolF("All");setBPodF("All");}},
+        {label:"Carrier Compare",icon:"🚢",desc:"Two highest-risk carriers side by side",apply:()=>{setAFpStatus("All");setACat("All");setARisk("All");setACostBand("All");setACarF("OOLU");setATopN("All");setAPolF("All");setAPodF("All");setBFpStatus("All");setBCat("All");setBRisk("All");setBCostBand("All");setBCarF("MAEU");setBTopN("All");setBPolF("All");setBPodF("All");}},
       ];
       return <div style={{marginBottom:14}}>
         <div style={{fontSize:10,fontWeight:700,color:T.sub,textTransform:"uppercase",letterSpacing:"1px",marginBottom:8}}>Prioritization Strategies — Quick Load</div>
@@ -1401,7 +1404,8 @@ function OptimizerPage(){
       {groupA.active.length>0&&groupB.active.length>0&&aFpStatus===bFpStatus&&aCat===bCat&&aRisk===bRisk&&aCostBand===bCostBand&&aPolF===bPolF&&aPodF===bPodF&&aCarF===bCarF&&aTopN===bTopN&&<div style={{background:T.amberBg,borderRadius:6,padding:"6px 10px",marginTop:8,borderLeft:"3px solid "+T.amber}}><div style={{fontSize:9,color:T.amber,fontWeight:600}}>⚠ Groups A and B have identical filters — comparison will always show $0 difference. Change at least one filter to make this meaningful.</div></div>}
       {groupA.active.length>0&&groupB.active.length>0&&(()=>{const EU=["DE","NL","BE","GB","FR","ES","IT","PL","SE","NO","FI","DK"];const AS=["CN","SG","TW","JP","TH","MY","PH","IN","KR","VN","HK","ID"];const isEU=p=>EU.some(x=>p.startsWith(x));const isAS=p=>AS.some(x=>p.startsWith(x));const aPs=new Set(groupA.active.map(c=>c.po));const bPs=new Set(groupB.active.map(c=>c.po));const aEU=[...aPs].some(isEU);const aAS=[...aPs].some(isAS);const bEU=[...bPs].some(isEU);const bAS=[...bPs].some(isAS);const cross=(aEU&&bAS)||(aAS&&bEU);const allPorts=[...aPs,...bPs];const hasUnknown=allPorts.some(p=>!isEU(p)&&!isAS(p));return cross?<div style={{background:T.amberBg,borderRadius:6,padding:"6px 10px",marginTop:8,borderLeft:"3px solid "+T.amber}}><div style={{fontSize:9,color:T.amber,fontWeight:600}}>{"⚠ These groups span different regions (Europe vs Asia). Resources typically cannot be shared across continents. Consider comparing ports within the same region."}</div></div>:hasUnknown?<div style={{background:T.amberBg,borderRadius:6,padding:"6px 10px",marginTop:8,borderLeft:"3px solid "+T.amber}}><div style={{fontSize:9,color:T.amber,fontWeight:600}}>⚠ Could not determine regions for some ports. Verify resource sharing manually.</div></div>:null;})()}
       {/* DECISION BAR */}
-      {groupA.active.length===0&&groupB.active.length===0&&<div style={{background:T.amberBg,borderRadius:6,padding:"6px 10px",marginTop:8,borderLeft:"3px solid "+T.amber}}><div style={{fontSize:9,color:T.amber,fontWeight:600}}>No containers match the current filter combination. Try broadening your filters.</div></div>}
+      {groupA.active.length===0&&groupB.active.length===0&&<div style={{background:T.amberBg,borderRadius:6,padding:"6px 10px",marginTop:8,borderLeft:"3px solid "+T.amber}}><div style={{fontSize:9,color:T.amber,fontWeight:600}}>⚠ No containers match the current filter combination for either group. Try broadening your filters or using a Prioritization Strategy above.</div></div>}
+      {(groupA.active.length===0&&groupB.active.length>0)||(groupA.active.length>0&&groupB.active.length===0)?<div style={{background:T.blueBg,borderRadius:6,padding:"6px 10px",marginTop:8,borderLeft:"3px solid "+T.blue}}><div style={{fontSize:9,color:T.blue,fontWeight:600}}>{(groupA.active.length===0?"Group A":"Group B")+" has no matching containers — configure its filters to enable comparison."}</div></div>:null}
       {(groupA.active.length>0||groupB.active.length>0)&&<div style={{background:"#fff",borderRadius:8,padding:10,marginTop:10,border:"1px solid "+T.green+"40"}}>
         {gAToday===gBToday?<div style={{fontSize:11,fontWeight:700,color:T.sub}}>{"Both groups have identical cost avoidance ("+fmt(gAToday)+"). Choose based on operational priority."}</div>:<><div style={{fontSize:11,fontWeight:700,color:T.green}}>{"Recommendation: "+(gAToday>gBToday?"Group A":"Group B")+" avoids "+fmt(Math.abs(gAToday-gBToday))+" more based on today's prediction."}</div>
         <div style={{fontSize:9,color:T.sub}}>{"Acting on "+(gAToday>gBToday?"Group A":"Group B")+"'s top containers avoids "+fmt(Math.max(gAToday,gBToday))+" this period at "+fmt(Math.max(gAToday>gBToday?groupA.active.reduce((s,c)=>s+c.daily,0):groupB.active.reduce((s,c)=>s+c.daily,0),0))+"/day burn."}</div></>}
@@ -1424,6 +1428,7 @@ function OptimizerPage(){
 function HistoryPage({setPage,navToSurcharges}){
   const[trendFilter,setTrendFilter]=useState("all");const[portTab,setPortTab]=useState("pol");
   const[selPort,setSelPort]=useState(null);
+  useEffect(()=>setSelPort(null),[portTab]);
   const monthlyCost=useMemo(()=>{if(trendFilter==="all")return BASE.monthlyCost;return BASE.monthlyCost.map(m=>trendFilter==="origin"?{...m,detention:m.oDetention,demurrage:m.oDemurrage,storage:m.oStorage,combined:m.oCombined}:{...m,detention:m.dDetention,demurrage:m.dDemurrage,storage:m.dStorage,combined:m.dCombined});},[trendFilter]);
   const stageData=useMemo(()=>[
     {stage:"Origin Depot",costType:"Detention",avgDays:BASE.stageDays.origin_detention.avg,cost:BASE.costMatrix.detention_origin.total,color:T.amber,freeTime:BASE.costMatrix.detention_origin.avgFP,breach:Math.max(0,BASE.stageDays.origin_detention.avg-BASE.costMatrix.detention_origin.avgFP),prevent:"Faster documentation, earlier truck booking"},
