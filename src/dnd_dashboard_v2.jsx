@@ -402,7 +402,7 @@ function CostPage({setPage,allowedTabs}){
           {title:"Find the worst carrier",sub:"See who is driving dwell beyond free period on origin and destination.",cta:"→ Carrier Intel",page:"carriers",color:T.amber},
           {title:"Negotiate better free days",sub:"Identify which lanes have the largest gap between dwell and contracted free period.",cta:"→ Negotiation Center",page:"surcharges",color:T.purple},
           {title:"Reduce spend now",sub:"Prioritize containers with highest avoidable cost today before charges escalate.",cta:"→ Cost Optimizer",page:"optimizer",color:T.blue},
-        ].map((d,i)=><Card key={i} style={{padding:"14px 16px",cursor:can(d.page)?"pointer":"default",borderTop:"2px solid "+d.color}} onClick={can(d.page)?()=>setPage(d.page):undefined}>
+        ].filter(d=>!d.page||can(d.page)).map((d,i)=><Card key={i} style={{padding:"14px 16px",cursor:can(d.page)?"pointer":"default",borderTop:"2px solid "+d.color}} onClick={can(d.page)?()=>setPage(d.page):undefined}>
           <div style={{fontSize:11,fontWeight:700,color:T.text,marginBottom:4}}>{d.title}</div>
           <div style={{fontSize:10,color:T.sub,lineHeight:1.5,marginBottom:can(d.page)?8:0}}>{d.sub}</div>
           {can(d.page)&&<div style={{fontSize:10,fontWeight:700,color:d.color}}>{d.cta}</div>}
@@ -754,10 +754,10 @@ if(view==="exceeding"){
           {type:"Operational Fix",desc:"Contact the freight forwarder or warehouse handling the highest-risk carrier's shipments. Gate-in timing and terminal congestion are the primary operational levers.",color:T.red,icon:"🚨"},
           {type:"Negotiation Fix",desc:"Use Negotiation Center to build the case for extended free days on lanes where your carrier consistently runs beyond contracted free periods.",color:T.purple,icon:"📋",page:"surcharges"},
           {type:"Contract Fix",desc:"Flag top-risk carriers as priority items in your next tender review. Use this scorecard as supporting data to renegotiate free period thresholds.",color:T.blue,icon:"📑"},
-        ].map((d,i)=><Card key={i} style={{padding:"14px 16px",borderTop:"2px solid "+d.color}}>
+        ].filter(d=>!d.page||can(d.page)).map((d,i)=><Card key={i} style={{padding:"14px 16px",borderTop:"2px solid "+d.color}}>
           <div style={{fontSize:10,fontWeight:700,color:d.color,marginBottom:4}}>{d.icon} {d.type}</div>
           <div style={{fontSize:10,color:T.sub,lineHeight:1.5,marginBottom:d.page?8:0}}>{d.desc}</div>
-          {d.page&&can(d.page)&&<div style={{fontSize:10,fontWeight:700,color:d.color,cursor:"pointer"}} onClick={()=>setPage(d.page)}>→ Negotiation Center</div>}
+          {d.page&&<div style={{fontSize:10,fontWeight:700,color:d.color,cursor:"pointer"}} onClick={()=>setPage(d.page)}>→ Negotiation Center</div>}
         </Card>)}
       </div>
     </div>}
@@ -1473,10 +1473,10 @@ function HistoryPage({setPage,navToSurchargesPort,allowedTabs}){
           {title:"Click a port above for deep dive",sub:"The table above is clickable — select any port to see its top carrier, surcharge, stage, and affected lanes.",color:T.amber,icon:"🏭"},
           {title:"Negotiate by port",sub:"Use the Negotiation Center to build the case for extended free days on the lanes running through your worst port.",color:T.purple,icon:"📋",page:"surcharges"},
           {title:"Escalate worst carrier",sub:"Cross-reference structural leakage with Carrier Intel to confirm whether the port's issue is carrier-driven or process-driven.",color:T.blue,icon:"🚢",page:"carriers"},
-        ].map((d,i)=><Card key={i} style={{padding:"14px 16px",cursor:(d.page&&can(d.page))?"pointer":undefined,borderTop:"2px solid "+d.color}} onClick={()=>d.page&&can(d.page)&&setPage(d.page)}>
+        ].filter(d=>!d.page||can(d.page)).map((d,i)=><Card key={i} style={{padding:"14px 16px",cursor:d.page?"pointer":undefined,borderTop:"2px solid "+d.color}} onClick={()=>d.page&&setPage(d.page)}>
           <div style={{fontSize:10,fontWeight:700,color:d.color,marginBottom:4}}>{d.icon} {d.title}</div>
-          <div style={{fontSize:10,color:T.sub,lineHeight:1.5,marginBottom:(d.page&&can(d.page))?8:0}}>{d.sub}</div>
-          {d.page&&can(d.page)&&<div style={{fontSize:10,fontWeight:700,color:d.color}}>→ {d.page==="surcharges"?"Negotiation Center":"Carrier Intel"}</div>}
+          <div style={{fontSize:10,color:T.sub,lineHeight:1.5,marginBottom:d.page?8:0}}>{d.sub}</div>
+          {d.page&&<div style={{fontSize:10,fontWeight:700,color:d.color}}>→ {d.page==="surcharges"?"Negotiation Center":"Carrier Intel"}</div>}
         </Card>)}
       </div>
     </div>
@@ -1682,10 +1682,10 @@ function SurchargePage({setPage,selectedPort,clearPort,allowedTabs}){
           {title:"Select a port above to prepare",sub:"Click any origin or destination port to open the full negotiation analysis with benchmark, rate structure recommendation, and a ready-made script.",color:T.purple,icon:"🏭"},
           {title:"Cross-reference with Carrier Intel",sub:"A port that is over free period may have a carrier-driven root cause. Check if the worst carrier at that port is a systematic performer.",color:T.blue,icon:"🚢",page:"carriers"},
           {title:"Track next month's trend",sub:"After a successful renegotiation, monitor Structural Leakage to confirm dwell at that port drops below the new free period threshold.",color:T.amber,icon:"📈",page:"history"},
-        ].map((d,i)=><Card key={i} style={{padding:"14px 16px",cursor:(d.page&&can(d.page))?"pointer":undefined,borderTop:"2px solid "+d.color}} onClick={()=>d.page&&can(d.page)&&setPage(d.page)}>
+        ].filter(d=>!d.page||can(d.page)).map((d,i)=><Card key={i} style={{padding:"14px 16px",cursor:d.page?"pointer":undefined,borderTop:"2px solid "+d.color}} onClick={()=>d.page&&setPage(d.page)}>
           <div style={{fontSize:10,fontWeight:700,color:d.color,marginBottom:4}}>{d.icon} {d.title}</div>
-          <div style={{fontSize:10,color:T.sub,lineHeight:1.5,marginBottom:(d.page&&can(d.page))?8:0}}>{d.sub}</div>
-          {d.page&&can(d.page)&&<div style={{fontSize:10,fontWeight:700,color:d.color}}>→ {d.page==="carriers"?"Carrier Intel":"Structural Leakage"}</div>}
+          <div style={{fontSize:10,color:T.sub,lineHeight:1.5,marginBottom:d.page?8:0}}>{d.sub}</div>
+          {d.page&&<div style={{fontSize:10,fontWeight:700,color:d.color}}>→ {d.page==="carriers"?"Carrier Intel":"Structural Leakage"}</div>}
         </Card>)}
       </div>
     </div>
