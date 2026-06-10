@@ -132,7 +132,7 @@ function HomePage({setPage,allowedTabs}){
       <span style={{fontSize:11,color:T.sub}}>All cost figures are based on dwell rates, not carrier billing data. Reconcile with actual invoices for financial reporting.</span>
     </div>
     {/* ── 1. TODAY'S RISK SNAPSHOT ── */}
-    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:12,marginBottom:14}}>
+    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1.5fr",gap:12,marginBottom:14}}>
       {/* Containers Requiring Action */}
       <Card style={{padding:"16px 14px",borderTop:"3px solid "+T.red,background:"#FFF5F5",display:"flex",flexDirection:"column",justifyContent:"center"}}>
         <div style={{fontSize:9,fontWeight:600,color:T.red,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:4}}>Containers Requiring Action</div>
@@ -296,42 +296,6 @@ function HomePage({setPage,allowedTabs}){
         {b.link&&b.count>0&&<div onClick={b.onClick} style={{fontSize:9,fontWeight:700,color:b.color,cursor:"pointer",marginTop:3,textDecoration:"underline"}}>{b.link}</div>}
       </div>;})}
     </Card></div>
-    {/* Portfolio Signals — rule-based from current data */}
-    {(()=>{
-      const highRisk=CDATA.topRisk.filter(c=>c.risk>=75);
-      const critBurn=highRisk.reduce((s,c)=>s+Math.max(0,Math.round((c.cost3d-c.cost)/3)),0);
-      const entries=Object.entries(BASE.carriers);
-      const totC=entries.reduce((s,[,d])=>s+d.containers,0);
-      const portAvg=+(entries.reduce((s,[,d])=>s+d.avgODet*d.containers,0)/Math.max(1,totC)).toFixed(1);
-      const [wcName,wcData]=entries.reduce((a,b)=>b[1].avgODet>a[1].avgODet?b:a,["",{avgODet:0,containers:0}]);
-      const wcExcess=+(wcData.avgODet-portAvg).toFixed(1);
-      const FP_COMB=9.9;
-      const worstLane=BASE.topLanes.reduce((a,b)=>(b.avgOComb||0)>(a.avgOComb||0)?b:a,BASE.topLanes[0]||{avgOComb:0,lane:"",containers:0});
-      const laneOver=+(worstLane.avgOComb-FP_COMB).toFixed(1);
-      const signals=[
-        highRisk.length>0?{color:T.red,icon:"🔴",title:highRisk.length+" containers at high risk — "+fmt(critBurn)+"/day accumulating",sub:"These "+highRisk.length+" containers have risk score ≥ 75 and are past or near their free period. Daily burn increases if not cleared.",cta:"Prioritize in Cost Optimizer",nav:"optimizer"}:null,
-        wcExcess>0?{color:T.amber,icon:"🟡",title:wcName+": "+wcData.avgODet+"d avg origin detention — "+wcExcess+"d above portfolio average ("+portAvg+"d avg)",sub:"Across "+wcData.containers+" containers, "+wcName+" consistently runs above portfolio average at origin. Prepare a data-backed QBR discussion.",cta:"Review in Carrier Intel",nav:"carriers"}:null,
-        laneOver>0?{color:T.purple,icon:"📋",title:worstLane.lane+" — avg combined dwell "+worstLane.avgOComb+"d vs "+FP_COMB+"d contracted free (+"+laneOver+"d over)",sub:worstLane.containers+" containers on this lane run over combined free period consistently. A free-day extension negotiation could close this gap.",cta:"Build negotiation case",nav:"surcharges"}:null,
-      ].filter(Boolean);
-      if(!signals.length)return null;
-      return <div style={{marginTop:16,marginBottom:4}}>
-        <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
-          <div style={{fontSize:10,fontWeight:700,color:T.sub,textTransform:"uppercase",letterSpacing:"0.8px"}}>Portfolio Signals</div>
-          <span style={{background:T.blue+"12",color:T.blue,padding:"2px 8px",borderRadius:10,fontSize:9,fontWeight:600}}>Computed from portfolio data</span>
-        </div>
-        <div style={{display:"flex",flexDirection:"column",gap:6}}>
-          {signals.map((a,i)=><div key={i} onClick={a.nav&&can(a.nav)?()=>setPage(a.nav):undefined} style={{display:"flex",alignItems:"flex-start",gap:10,padding:"8px 12px",background:"#fff",borderRadius:8,border:"1px solid "+T.border+"80",borderLeft:"3px solid "+a.color,cursor:a.nav&&can(a.nav)?"pointer":"default"}}>
-            <span style={{fontSize:14,flexShrink:0}}>{a.icon}</span>
-            <div style={{flex:1}}>
-              <div style={{fontSize:12,fontWeight:600,color:T.text,marginBottom:2}}>{a.title}</div>
-              <div style={{fontSize:10,color:T.sub,lineHeight:1.5}}>{a.sub}</div>
-            </div>
-            {a.nav&&can(a.nav)&&<span style={{fontSize:9,fontWeight:700,color:a.color,whiteSpace:"nowrap",marginTop:2}}>{a.cta} →</span>}
-          </div>)}
-        </div>
-        <div style={{fontSize:9,color:T.dim,marginTop:6,lineHeight:1.4}}>Signals are computed against fixed thresholds from your portfolio data. Adjust thresholds in settings to tune sensitivity.</div>
-      </div>;
-    })()}
   </div>);
 }
 
