@@ -44,6 +44,9 @@ const CDATA={topRisk:[
   {cn:"ONEY_021120",ca:"ONEY",po:"DEBRV",pd:"CNJMN",oDet:9.8,risk:74,cat:"Demurrage",cost:624,cost3d:1374,cost7d:2624,stage:"Gate Out POD"}
 ]};
 const COST_CATS=[{name:"Detention",oKey:"detention_origin",dKey:"detention_destination",color:"#D97706"},{name:"Demurrage",oKey:"demurrage_origin",dKey:"demurrage_destination",color:"#7C3AED"},{name:"Storage",oKey:"storage_origin",dKey:"storage_destination",color:"#059669"},{name:"Combined D&D",oKey:"dnd_origin",dKey:"dnd_destination",color:"#EF4444"}];
+const PORT_NAMES={DEHAM:"Hamburg",DEBRV:"Bremerhaven",DEWVN:"Wilhelmshaven",CNSHA:"Shanghai",CNTAO:"Qingdao",CNYTN:"Yantian",CNJMN:"Jiujiang",NLRTM:"Rotterdam",BEZEE:"Zeebrugge",SGSIN:"Singapore",USORF:"Norfolk",USEWR:"Newark",USCHS:"Charleston",THLCH:"Laem Chabang",TWKEL:"Keelung",JPNGO:"Nagoya",ILASH:"Ashdod",DZALG:"Algiers",DZORN:"Oran",BHBAH:"Bahrain",PHMNN:"Gen. Santos"};
+const portLabel=code=>PORT_NAMES[code]?PORT_NAMES[code]+" ("+code+")":code;
+const portShort=code=>PORT_NAMES[code]||code;
 
 // ═══ THEME ═══
 const T={bg:"#F8F9FC",page:"#ffffff",card:"#ffffff",card2:"#F8F9FC",border:"#E8ECF1",text:"#1A1D26",sub:"#5E6578",dim:"#98A1B3",amber:"#C27815",amberBg:"#FFF8EE",purple:"#6D5ACE",purpleBg:"#F5F3FF",green:"#0D9668",greenBg:"#EEFBF4",red:"#DC3545",redBg:"#FFF0F1",blue:"#2563EB",blueL:"#4F8FEE",blueBg:"#EEF4FF",cyan:"#0E7F96",actionBg:"#F5F8FF",warmBg:"#FFFCF0",intBg:"#F0F5FF"};
@@ -56,7 +59,6 @@ const SolidBadge=({children,color=T.red})=><span style={{background:color,color:
 function dlCSV(filename,headers,rows){const esc=v=>'"'+String(v==null?"":v).replace(/"/g,'""')+'"';const csv=[headers.map(esc).join(","),...rows.map(r=>r.map(esc).join(","))].join("\n");const a=document.createElement("a");a.href="data:text/csv;charset=utf-8,"+encodeURIComponent(csv);a.download=filename+".csv";a.click();}
 const DlBtn=({onClick})=><button onClick={onClick} title="Download CSV" style={{display:"flex",alignItems:"center",gap:4,padding:"4px 10px",borderRadius:8,border:"1px solid "+T.border,background:T.card2,color:T.sub,fontSize:10,fontWeight:600,cursor:"pointer"}}><Download size={11}/>Export</button>;
 const Badge=({children,color=T.blue})=><span style={{background:color+"12",color,padding:"3px 10px",borderRadius:20,fontSize:11,fontWeight:500,whiteSpace:"nowrap"}}>{children}</span>;
-const BigPill=({children,color})=><span style={{background:color+"10",color,padding:"6px 14px",borderRadius:20,fontSize:11,fontWeight:500,whiteSpace:"nowrap",lineHeight:1.3}}>{children}</span>;
 const Pill=({active,onClick,children,color=T.blue})=><button onClick={onClick} style={{padding:"6px 16px",borderRadius:20,border:"1px solid "+(active?color+"50":T.border),background:active?color+"10":"transparent",color:active?color:T.sub,fontSize:11,fontWeight:active?600:400,cursor:"pointer",transition:"all .15s ease"}}>{children}</button>;
 const Card=React.forwardRef(function Card({children,style,onClick,urgency,id},ref){const bg=urgency==="critical"?"#FFF0F1":urgency==="warn"?"#FFF8EE":urgency==="action"?T.actionBg:T.card;const bTop=urgency==="critical"?T.red:urgency==="warn"?T.amber:null;return <div ref={ref} id={id} onClick={onClick} style={{background:bg,border:bTop?"none":"1px solid "+T.border+"80",borderRadius:14,padding:20,cursor:onClick?"pointer":"default",boxShadow:bTop?"0 2px 12px rgba(0,0,0,.06)":"0 1px 4px rgba(0,0,0,.03), 0 1px 2px rgba(0,0,0,.02)",borderTop:bTop?"3px solid "+bTop:undefined,transition:"all .2s ease",...style}}>{children}</div>;});
 function HoverTip({text}){const[s,setS]=useState(false);return <span onMouseEnter={()=>setS(true)} onMouseLeave={()=>setS(false)} style={{position:"relative",cursor:"help",display:"inline-flex",marginLeft:3}}><HelpCircle size={11} color={T.dim}/>{s&&<div style={{position:"absolute",bottom:20,left:-100,width:280,background:T.text,color:"#fff",padding:"8px 12px",borderRadius:8,fontSize:11,lineHeight:1.5,zIndex:99,boxShadow:"0 8px 24px rgba(0,0,0,.2)"}}>{text}<div style={{position:"absolute",bottom:-4,left:104,width:8,height:8,background:T.text,transform:"rotate(45deg)"}}/></div>}</span>;}
@@ -168,7 +170,7 @@ function HomePage({setPage}){
           return <tr key={i} style={{background:i===0?T.blueBg:T.card2}}>
             <td style={{padding:"5px 6px",borderRadius:"6px 0 0 6px",fontFamily:"monospace",fontSize:10,fontWeight:600,borderLeft:c.risk>=75?"3px solid "+T.red:"3px solid transparent"}}>{c.cn}</td>
             <td style={{padding:"5px 6px",color:T.sub}}>{c.ca}</td>
-            <td style={{padding:"5px 6px"}}>{c.po+"→"+c.pd}</td>
+            <td style={{padding:"5px 6px"}} title={c.po+"→"+c.pd}>{portShort(c.po)+"→"+portShort(c.pd)}</td>
             <td style={{padding:"5px 6px"}}><Badge color={catColor(c.cat)}>{c.cat}</Badge></td>
             <td style={{padding:"5px 6px",fontWeight:700,color:T.red,textAlign:"right"}}>{daily>0?"$"+daily+"/d":"—"}</td>
             <td style={{padding:"5px 6px",fontWeight:600,textAlign:"right"}}>{fmt(c.cost)}</td>
@@ -252,167 +254,6 @@ function HomePage({setPage}){
         {b.link&&b.count>0&&<div onClick={b.onClick} style={{fontSize:9,fontWeight:700,color:b.color,cursor:"pointer",marginTop:3,textDecoration:"underline"}}>{b.link}</div>}
       </div>;})}
     </Card></div>
-    {false&&<div>{/* old content hidden */}
-    <Card style={{padding:18,marginBottom:18,background:"#FEFCE808"}}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
-        <div><div style={{fontSize:14,fontWeight:600}}>Container D&D Cost Journey</div><div style={{fontSize:9,color:T.sub}}>Cost incurred at each stage of the container lifecycle.</div></div>
-      </div>
-      {[{label:"ORIGIN",bg:T.amberBg,lc:T.amber,nodes:[
-          {label:"Gate Out Empty",sub:"Depot",icon:Box,color:T.amber,actual:st.gateOutEmpty_actual,missing:BASE.missingMilestones.gateOutEmpty,incurred:BASE.stageIncurred.gateOutEmpty},
-          {label:"Gate In POL",sub:"Port",icon:MapPin,color:T.amber,actual:st.gateInPOL_actual,missing:BASE.missingMilestones.gateInPOL,incurred:BASE.stageIncurred.gateInPOL},
-          {label:"Load POL",sub:"Vessel",icon:Ship,color:T.purple,actual:st.loadPOL_actual,missing:BASE.missingMilestones.loadPOL,incurred:BASE.stageIncurred.loadPOL}],
-        metrics:[{t:"Detention",dw:sd.origin_detention.avg,fp:cm.detention_origin.avgFP,cost:cm.detention_origin.total,n:cm.detention_origin.withCost,c:T.amber},{t:"Demurrage",dw:sd.origin_demurrage.avg,fp:cm.demurrage_origin.avgFP,cost:cm.demurrage_origin.total,n:cm.demurrage_origin.withCost,c:T.purple},{t:"Storage",dw:sd.storage_origin.avg,fp:cm.storage_origin.avgFP,cost:cm.storage_origin.total,n:cm.storage_origin.withCost,c:T.green},{t:"Combined",dw:sd.combined_origin.avg,fp:cm.dnd_origin.avgFP,cost:cm.dnd_origin.total,n:cm.dnd_origin.withCost,c:T.red}]},
-        {label:"DESTINATION",bg:T.purpleBg,lc:T.purple,nodes:[
-          {label:"Discharge POD",sub:"Arrived",icon:Anchor,color:T.purple,actual:st.dischargePOD_actual,missing:BASE.missingMilestones.dischargePOD,incurred:BASE.stageIncurred.dischargePOD},
-          {label:"Gate Out POD",sub:"Left Port",icon:Truck,color:T.purple,actual:st.gateOutPOD_actual,missing:BASE.missingMilestones.gateOutPOD,incurred:BASE.stageIncurred.gateOutPOD},
-          {label:"Empty Return",sub:"Returned",icon:Box,color:T.amber,actual:st.emptyReturn_actual,missing:BASE.missingMilestones.emptyReturn,incurred:BASE.stageIncurred.emptyReturn}],
-        metrics:[{t:"Demurrage",dw:sd.dest_demurrage.avg,fp:cm.demurrage_destination.avgFP,cost:cm.demurrage_destination.total,n:cm.demurrage_destination.withCost,c:T.purple},{t:"Detention",dw:sd.dest_detention.avg,fp:cm.detention_destination.avgFP,cost:cm.detention_destination.total,n:cm.detention_destination.withCost,c:T.amber},{t:"Storage",dw:sd.storage_dest.avg,fp:cm.storage_destination.avgFP,cost:cm.storage_destination.total,n:cm.storage_destination.withCost,c:T.green},{t:"Combined",dw:sd.combined_dest.avg,fp:cm.dnd_destination.avgFP,cost:cm.dnd_destination.total,n:cm.dnd_destination.withCost,c:T.red}]}
-      ].map((sec,si)=><div key={si}>
-        {si===1&&<div style={{textAlign:"center",padding:"6px 0"}}><span style={{fontSize:10,color:T.dim,fontWeight:400}}>{"— Ocean Transit: "+sd.ocean_transit.avg+"d avg —"}</span></div>}
-        <div style={{background:sec.bg+"80",border:"none",borderRadius:14,padding:"16px 14px 12px",marginBottom:si===0?6:0,position:"relative"}}>
-          <div style={{position:"absolute",top:7,left:12,fontSize:9,fontWeight:700,color:sec.lc,textTransform:"uppercase",letterSpacing:1}}>{sec.label}</div>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginTop:14}}>
-            {sec.nodes.map((n,i)=><div key={i} style={{background:"#fff",border:"1px solid "+T.border+"80",borderRadius:12,padding:"12px 10px",textAlign:"center",position:"relative"}}>
-              {n.missing>0&&(()=>{const TOTAL=BASE.summary.inProgress+BASE.summary.completed;const reachRatio=n.actual/TOTAL;const isEarly=["Gate Out Empty","Gate In POL","Load POL"].includes(n.label);const isLate=["Gate Out POD","Empty Return"].includes(n.label);const tip=isLate?"Most containers have not yet reached this stage — expected for in-transit shipments.":(reachRatio>0.5?"⚠ "+n.missing.toLocaleString()+" containers reached this stage but date was not captured — possible tracking gap.":"Many containers have not yet reached this stage — check if upstream delays are holding shipments.");const badgeColor=isLate?T.sub:(reachRatio>0.5?T.amber:T.dim);return<div style={{position:"absolute",top:6,right:8,cursor:"help",fontSize:11,color:badgeColor,userSelect:"none"}} title={tip}>{(isLate?"○ ":"⚠ ")+n.missing.toLocaleString()}</div>;})()}
-              <n.icon size={14} color={n.color} style={{marginBottom:2}}/><div style={{fontSize:11,fontWeight:700}}>{n.label}</div><div style={{fontSize:10,color:T.dim}}>{n.sub}</div>
-              <div style={{fontSize:9,color:T.sub,marginTop:4}}>reached this stage</div>
-              <div style={{fontSize:16,fontWeight:700,margin:"2px 0",color:T.text}}>{n.actual.toLocaleString()}</div>
-            </div>)}
-          </div>
-        </div>
-      </div>)}
-    </Card>
-    <div style={{height:1,background:T.border+"40",margin:"6px 0 14px"}}/>
-    {/* COST OPPORTUNITY CARDS */}
-    {(()=>{
-      const buckets=COST_CATS.map(cat=>({name:cat.name,color:cat.color,total:cm[cat.oKey].total+cm[cat.dKey].total,count:cm[cat.oKey].withCost+cm[cat.dKey].withCost}));
-      const largest=buckets.reduce((a,b)=>a.total>b.total?a:b);
-      const mostImpacted=buckets.reduce((a,b)=>a.count>b.count?a:b);
-      const growthBuckets=[
-        {name:"Detention",delta:_curr.detention-_prev.detention,color:T.amber},
-        {name:"Demurrage",delta:_curr.demurrage-_prev.demurrage,color:T.purple},
-        {name:"Storage",delta:_curr.storage-_prev.storage,color:T.green},
-        {name:"Combined D&D",delta:_curr.combined-_prev.combined,color:T.red},
-      ];
-      const highestGrowth=growthBuckets.reduce((a,b)=>b.delta>a.delta?b:a);
-      return <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12,marginBottom:16}}>
-        <Card style={{padding:"14px 16px",borderLeft:"3px solid "+largest.color}}>
-          <div style={{fontSize:9,fontWeight:600,color:T.sub,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:6}}>Largest Cost Bucket</div>
-          <div style={{fontSize:20,fontWeight:800,color:largest.color}}>{fmt(largest.total)}</div>
-          <div style={{fontSize:11,fontWeight:600,color:T.text,marginTop:2}}>{largest.name}</div>
-          <div style={{fontSize:9,color:T.dim,marginTop:2}}>{largest.count} containers affected</div>
-        </Card>
-        <Card style={{padding:"14px 16px",borderLeft:"3px solid "+highestGrowth.color}}>
-          <div style={{fontSize:9,fontWeight:600,color:T.sub,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:6}}>Highest Growth Bucket</div>
-          <div style={{fontSize:20,fontWeight:800,color:highestGrowth.color}}>+{fmt(highestGrowth.delta)}</div>
-          <div style={{fontSize:11,fontWeight:600,color:T.text,marginTop:2}}>{highestGrowth.name}</div>
-          <div style={{fontSize:9,color:T.dim,marginTop:2}}>MoM increase ({_curr.month})</div>
-        </Card>
-        <Card style={{padding:"14px 16px",borderLeft:"3px solid "+mostImpacted.color}}>
-          <div style={{fontSize:9,fontWeight:600,color:T.sub,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:6}}>Most Containers Impacted</div>
-          <div style={{fontSize:20,fontWeight:800,color:mostImpacted.color}}>{mostImpacted.count}</div>
-          <div style={{fontSize:11,fontWeight:600,color:T.text,marginTop:2}}>{mostImpacted.name}</div>
-          <div style={{fontSize:9,color:T.dim,marginTop:2}}>{fmt(mostImpacted.total)} total exposure</div>
-        </Card>
-      </div>;
-    })()}
-    {/* ANALYSIS ZONE */}
-    <div style={{display:"grid",gridTemplateColumns:"3fr 2fr",gap:16,marginBottom:18}}>
-      <Card>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:3}}>
-          <div style={{fontSize:14,fontWeight:600}}>Cost Breakdown</div>
-          <div style={{display:"flex",background:T.card2,borderRadius:8,padding:2,gap:2}}>
-            {[{id:"category",label:"By Category"},{id:"location",label:"By Location"}].map(t=><button key={t.id} onClick={()=>setBreakdownToggle(t.id)} style={{fontSize:9,fontWeight:600,padding:"4px 10px",borderRadius:6,border:"none",cursor:"pointer",background:breakdownToggle===t.id?"#fff":T.card2,color:breakdownToggle===t.id?T.text:T.sub,boxShadow:breakdownToggle===t.id?"0 1px 3px rgba(0,0,0,.1)":"none"}}>{t.label}</button>)}
-          </div>
-        </div>
-        <div style={{fontSize:11,color:T.sub,marginBottom:10}}>Which charge type and side is driving your exposure?</div>
-        {breakdownToggle==="category"?(
-          <table style={{width:"100%",borderCollapse:"separate",borderSpacing:"0 4px",fontSize:11}}>
-            <thead><tr style={{color:T.dim,fontSize:9,background:T.card2}}>{["Category","Origin","Dest","Total","FP"].map(h=><th key={h} style={{padding:"6px 8px",textAlign:h==="Category"?"left":"right",fontWeight:600,textTransform:"uppercase",letterSpacing:"0.5px"}}>{h}</th>)}</tr></thead>
-            <tbody>{COST_CATS.filter(cat=>cm[cat.oKey].total+cm[cat.dKey].total>0).map((cat)=>{const o=cm[cat.oKey];const d=cm[cat.dKey];const isMax=cat.name==="Combined D&D";
-            const catTip={
-              "Detention":"Carrier charges for holding the container beyond the free period before loading (origin) or after discharge (destination). Always billed separately per carrier contract.",
-              "Demurrage":"Port/terminal charges for keeping the container inside the terminal beyond the free period. Usually included in combined D&D rates — shown separately only when procured as a standalone charge.",
-              "Storage":"Warehouse or yard storage charges beyond free time. Often bundled with demurrage — shown separately only when your rate contract distinguishes it.",
-              "Combined D&D":"Single bundled rate covering detention + demurrage (and sometimes storage). Most ocean carrier contracts use this structure. Breakdown into individual components is not available for combined rates."
-            }[cat.name];
-            return <tr key={cat.name} style={{background:isMax?T.redBg+"80":T.card2}}><td style={{padding:"6px 8px",borderRadius:"6px 0 0 6px",borderLeft:isMax?"3px solid "+T.red:undefined}}><div style={{display:"flex",alignItems:"center",gap:5}}><div style={{width:8,height:8,borderRadius:2,background:cat.color}}/><span style={{fontWeight:700}}>{cat.name}</span>{catTip&&<HoverTip text={catTip}/>}</div></td><td style={{padding:"6px 8px",fontWeight:600,textAlign:"right"}}>{fmt(o.total)}</td><td style={{padding:"6px 8px",fontWeight:600,textAlign:"right"}}>{fmt(d.total)}</td><td style={{padding:"6px 8px",color:cat.color,fontWeight:700,textAlign:"right"}}>{fmt(o.total+d.total)}</td><td style={{padding:"6px 8px",color:T.sub,textAlign:"right",borderRadius:"0 6px 6px 0"}}>{o.avgFP}d</td></tr>;})}
-            <tr><td colSpan={3} style={{padding:8,fontWeight:600,fontSize:13}}>TOTAL</td><td colSpan={2} style={{padding:8,color:T.red,fontWeight:700,fontSize:14,textAlign:"right"}}>{fmt(BASE.grandTotal)}</td></tr></tbody>
-          </table>
-        ):(
-          <table style={{width:"100%",borderCollapse:"separate",borderSpacing:"0 4px",fontSize:11}}>
-            <thead><tr style={{color:T.dim,fontSize:9,background:T.card2}}>{["Location","Detention","Demurrage","Storage","Combined D&D","Total"].map(h=><th key={h} style={{padding:"6px 8px",textAlign:h==="Location"?"left":"right",fontWeight:600,textTransform:"uppercase",letterSpacing:"0.5px"}}>{h}</th>)}</tr></thead>
-            <tbody>
-              {[{label:"Origin",color:T.amber,det:cm.detention_origin.total,dem:cm.demurrage_origin.total,sto:cm.storage_origin.total,dnd:cm.dnd_origin.total},
-                {label:"Destination",color:T.purple,det:cm.detention_destination.total,dem:cm.demurrage_destination.total,sto:cm.storage_destination.total,dnd:cm.dnd_destination.total}
-              ].map(row=><tr key={row.label} style={{background:T.card2}}>
-                <td style={{padding:"6px 8px",borderRadius:"6px 0 0 6px"}}><div style={{display:"flex",alignItems:"center",gap:5}}><div style={{width:8,height:8,borderRadius:2,background:row.color}}/><span style={{fontWeight:700}}>{row.label}</span></div></td>
-                <td style={{padding:"6px 8px",textAlign:"right",fontWeight:600,color:T.amber}}>{fmt(row.det)}</td>
-                <td style={{padding:"6px 8px",textAlign:"right",fontWeight:600,color:T.purple}}>{fmt(row.dem)}</td>
-                <td style={{padding:"6px 8px",textAlign:"right",fontWeight:600,color:T.green}}>{fmt(row.sto)}</td>
-                <td style={{padding:"6px 8px",textAlign:"right",fontWeight:600,color:T.red}}>{fmt(row.dnd)}</td>
-                <td style={{padding:"6px 8px",textAlign:"right",fontWeight:700,borderRadius:"0 6px 6px 0"}}>{fmt(row.det+row.dem+row.sto+row.dnd)}</td>
-              </tr>)}
-              <tr><td colSpan={5} style={{padding:8,fontWeight:600,fontSize:13}}>TOTAL</td><td style={{padding:8,color:T.red,fontWeight:700,fontSize:14,textAlign:"right"}}>{fmt(BASE.grandTotal)}</td></tr>
-            </tbody>
-          </table>
-        )}
-        {breakdownToggle==="location"&&<div style={{fontSize:9,color:T.dim,marginTop:6,lineHeight:1.4}}>Combined D&D containers are billed under a single joint tariff. Detention and Demurrage rows reflect separately-billed contracts only — no double-counting.</div>}
-        <Insight text={(()=>{const cats=[{n:"Combined D&D",v:cm.dnd_origin.total},{n:"Detention",v:cm.detention_origin.total},{n:"Demurrage",v:cm.demurrage_origin.total},{n:"Storage",v:cm.storage_origin.total}];const top=cats.reduce((a,b)=>b.v>a.v?b:a);return top.n+" at origin ("+fmt(top.v)+") accounts for "+Math.round(top.v/Math.max(1,BASE.grandTotal)*100)+"% of total exposure. This is your largest cost bucket.";})()}/>
-      </Card>
-      <div ref={fthRef}><Card>
-        <div style={{fontSize:14,fontWeight:600,marginBottom:3}}>Free Time Health</div>
-        <div style={{fontSize:11,color:T.sub,marginBottom:4}}>Distribution of containers by free period status</div>
-        <div style={{fontSize:9,color:T.dim,marginBottom:10,lineHeight:1.4}}>Counts reflect risk events, not unique containers. One container may appear in multiple categories.</div>
-        {[
-          {label:"Overdue",desc:"Free period expired",count:fth.expired,color:T.red,action:"Review and clear",link:"→ See today's action list",onClick:()=>actionRef.current?.scrollIntoView({behavior:"smooth"})},
-          {label:"At Risk",desc:"Expiring within 48 hours",count:fth.red,color:T.amber,action:"Expedite today",link:"→ Prioritise in Cost Optimizer",onClick:()=>setPage("optimizer")},
-          {label:"Monitor",desc:"Expiring in 3–5 days",count:fth.yellow,color:"#EAB308",action:"Plan this week"},
-          {label:"Safe",desc:"6+ days remaining",count:fth.green,color:T.green,action:"No action needed"}
-        ].map(b=>{const tot=fth.expired+fth.red+fth.yellow+fth.green;return <div key={b.label} style={{marginBottom:10}}>
-          <div style={{display:"flex",justifyContent:"space-between",marginBottom:2}}>
-            <div><span style={{fontSize:12,fontWeight:600,color:b.color}}>{b.label}</span><span style={{fontSize:9,color:T.sub,marginLeft:6}}>{b.desc}</span></div>
-            <div style={{display:"flex",alignItems:"center",gap:8}}><span style={{fontSize:9,color:T.sub}}>{b.action}</span><span style={{fontSize:12,fontWeight:700,color:b.color}}>{b.count.toLocaleString()}</span></div>
-          </div>
-          <div style={{height:6,background:T.card2,borderRadius:3,overflow:"hidden",boxShadow:"inset 0 1px 2px rgba(0,0,0,.06)"}}><div style={{height:"100%",width:Math.round(b.count/tot*100)+"%",background:b.color,borderRadius:3}}/></div>
-          {b.link&&b.count>0&&<div onClick={b.onClick} style={{fontSize:9,fontWeight:700,color:b.color,cursor:"pointer",marginTop:3,textDecoration:"underline"}}>{b.link}</div>}
-        </div>;})}
-      </Card></div>
-    </div>
-    {(()=>{const tot=fth.expired+fth.red+fth.yellow+fth.green;return fth.expired/tot>0.7?<div style={{background:T.redBg,border:"1px solid "+T.red+"40",borderRadius:8,padding:"8px 14px",marginBottom:12,borderLeft:"3px solid "+T.red}}><div style={{fontSize:11,fontWeight:700,color:T.red}}>⚠ Over 70% of tracked container events are already past free period — immediate escalation recommended.</div></div>:null;})()}
-    <div style={{height:1,background:T.border+"40",margin:"6px 0 14px"}}/>
-    {/* INSIGHTS */}
-    <SH title="Operational Insights" sub="Click any insight to navigate to the relevant module"/>
-    <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:18}}>
-      {(()=>{const detFP=cm.detention_origin.avgFP;const detAvg=sd.origin_detention.avg;const detUtil=Math.round(detAvg/detFP*100);const sepT=cm.detention_origin.total+cm.demurrage_origin.total;const combPrem=sepT>0?Math.round((cm.dnd_origin.total-sepT)/sepT*100):0;const wc=Object.entries(BASE.carriers).reduce((a,[n,d])=>d.avgODet>a[1].avgODet?[n,d]:a,["",{avgODet:0,containers:0,missingMilestones:0}]);const pavg=Object.values(BASE.carriers).reduce((s,d)=>s+d.avgODet*d.containers,0)/Math.max(1,Object.values(BASE.carriers).reduce((s,d)=>s+d.containers,0));return[
-        {icon:AlertTriangle,color:T.red,nav:"optimizer",title:"Origin = "+originPct+"% of total D&D ("+fmt(BASE.totalOriginCost)+")",because:"Avg detention dwell is "+detAvg+"d against "+detFP+"d free — "+detUtil+"% utilization",action:"Prioritize expired origin containers in Cost Optimizer"},
-        {icon:Clock,color:T.red,nav:"optimizer",title:fth.red+" containers breach free time within 48 hours",because:"These move from zero-cost to paid tiers immediately upon expiry",action:"Filter Cost Optimizer to Free Period = Expiring 48h"},
-        wc[1].avgODet>pavg?{icon:Ship,color:T.amber,nav:"carriers",title:wc[0]+": "+wc[1].avgODet.toFixed(1)+"d avg origin dwell vs portfolio "+pavg.toFixed(1)+"d",because:"Consistent outlier across "+wc[1].containers+" containers",action:"Prepare data-driven QBR discussion in Carrier Intel"}:{icon:Ship,color:T.green,nav:"carriers",title:"✓ All carriers within portfolio average dwell ("+pavg.toFixed(1)+"d)",because:"No single carrier is driving disproportionate origin dwell",action:"Review Carrier Intel scorecard to maintain performance"}]})().map((ins,i)=><Card key={i} onClick={ins.nav?()=>setPage(ins.nav):undefined} style={{borderLeft:"3px solid "+ins.color,padding:"10px 14px",cursor:ins.nav?"pointer":"default"}}>
-        <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:2}}><ins.icon size={13} color={ins.color}/><span style={{fontSize:13,fontWeight:600}}>{ins.title}</span>{ins.nav&&<span style={{marginLeft:"auto",fontSize:9,color:T.blueL,fontWeight:600}}>{"View →"}</span>}</div>
-        <div style={{paddingLeft:20,fontSize:11,color:T.sub,lineHeight:1.4}}>{"Because: "+ins.because}</div>
-        <div style={{paddingLeft:20,fontSize:11,color:ins.color,fontWeight:600}}>{"Action: "+ins.action}</div>
-      </Card>)}
-    </div>
-    <div style={{height:1,background:T.border+"40",margin:"6px 0 14px"}}/>
-    {/* ACTION TABLE */}
-    <Card ref={actionRef} id="actionTable" urgency="action" style={{borderLeft:"4px solid "+T.blue}}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}><div><span style={{fontSize:15,fontWeight:600}}>Containers Needing Action Today</span><span style={{fontSize:11,fontWeight:400,color:T.sub,marginLeft:8}}>{"Top 5 of "+fth.red+" critical — sorted by daily burn"}</span></div><DlBtn onClick={()=>dlCSV("action_today_"+new Date().toISOString().slice(0,10),["Container","Carrier","Route","Stage","Category","Cost","$/Day","Risk"],[...CDATA.topRisk].sort((a,b)=>Math.round((b.cost3d-b.cost)/3)-Math.round((a.cost3d-a.cost)/3)).slice(0,5).map(c=>[c.cn,c.ca,c.po+"→"+c.pd,c.stage,c.cat,c.cost,Math.round((c.cost3d-c.cost)/3),c.risk]))}/></div>
-      <table style={{width:"100%",borderCollapse:"separate",borderSpacing:"0 4px",fontSize:11}}>
-        <thead><tr style={{color:T.sub,fontSize:10,textAlign:"left",background:T.card2}}>{["Container","Carrier","Route","Stage","Category","Cost","$/Day","Risk"].map(h=><th key={h} style={{padding:"5px 6px",fontWeight:600,textTransform:"uppercase",letterSpacing:"0.5px",textAlign:["Cost","$/Day","Risk"].includes(h)?"right":"left"}}>{h}{h==="Risk"&&<HoverTip text={"Higher risk = more days beyond free period + more missing milestones. Max 100."}/>}{h==="$/Day"&&<HoverTip text={"Daily burn rate: how much this container costs per day of inaction. Computed from tier-based cost projection."}/>}</th>)}</tr></thead>
-        <tbody>{[...CDATA.topRisk].sort((a,b)=>Math.round((b.cost3d-b.cost)/3)-Math.round((a.cost3d-a.cost)/3)).slice(0,5).map((c,i)=>{const daily=Math.round((c.cost3d-c.cost)/3);return <tr key={i} style={{background:i===0?T.blueBg:T.card2,borderLeft:c.risk>=75?"3px solid "+T.red:undefined}}>
-          <td style={{padding:"5px 6px",borderRadius:"6px 0 0 6px",fontFamily:"monospace",fontSize:11,fontWeight:600,borderLeft:c.risk>=75?"3px solid "+T.red:undefined}}>{c.cn}</td>
-          <td style={{padding:"5px 6px",color:T.sub}}>{c.ca}</td>
-          <td style={{padding:"5px 6px",fontSize:11}}>{c.po+"→"+c.pd}</td>
-          <td style={{padding:"5px 6px",fontSize:11,color:T.sub}}>{c.stage}</td>
-          <td style={{padding:"5px 6px"}}><Badge color={catColor(c.cat)}>{c.cat}</Badge></td>
-          <td style={{padding:"5px 6px",fontWeight:600,textAlign:"right"}}>{fmt(c.cost)}</td>
-          <td style={{padding:"5px 6px",fontWeight:700,color:T.red,textAlign:"right"}}>{"$"+daily+"/d"}</td>
-          <td style={{padding:"5px 6px",borderRadius:"0 6px 6px 0",textAlign:"right"}}><SolidBadge color={c.risk>=75?T.red:T.amber}>{c.risk}</SolidBadge></td>
-        </tr>;})}</tbody>
-      </table>
-      <NavLink text="View full prioritization queue in Cost Optimizer" onClick={()=>setPage("optimizer")}/>
-    </Card>
-
     {/* ALERT CONCEPTS */}
     <div style={{marginTop:16,marginBottom:4}}>
       <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
@@ -436,7 +277,6 @@ function HomePage({setPage}){
       </div>
       <div style={{fontSize:9,color:T.dim,marginTop:6,lineHeight:1.4}}>With live TMS integration, alerts fire automatically when thresholds are crossed — via email, Slack, or direct push to your operations team.</div>
     </div>
-    </div>}
   </div>);
 }
 
@@ -906,7 +746,7 @@ if(view==="exceeding"){
               const daily=Math.max(0,Math.round((c.cost3d-c.cost)/3));
               return <tr key={i} style={{background:T.card2}}>
                 <td style={{padding:"5px 6px",borderRadius:"6px 0 0 6px",fontFamily:"monospace",fontSize:10,fontWeight:600}}>{c.cn}</td>
-                <td style={{padding:"5px 6px",color:T.sub,fontSize:9}}>{c.po+"→"+c.pd}</td>
+                <td style={{padding:"5px 6px",color:T.sub,fontSize:9}} title={c.po+"→"+c.pd}>{portShort(c.po)+"→"+portShort(c.pd)}</td>
                 <td style={{padding:"5px 6px"}}><Badge color={catColor(c.cat)}>{c.cat}</Badge></td>
                 <td style={{padding:"5px 6px",fontSize:9,color:T.sub}}>{c.stage}</td>
                 <td style={{padding:"5px 6px",fontWeight:600,textAlign:"right",color:daysBeyond>0?T.red:T.green}}>{daysBeyond>0?"+"+daysBeyond+"d":"Within FP"}</td>
@@ -1068,7 +908,7 @@ function OptimizerPage(){
   },[predDays]);
 
   const ContainerCard=({c,dimmed})=><div style={{display:"flex",justifyContent:"space-between",padding:"5px 8px",borderRadius:6,marginBottom:2,background:"#fff",opacity:dimmed?.3:1,borderLeft:"3px solid "+catColor(c.cat)}}>
-    <div><div style={{fontSize:10,fontWeight:600}}>{c.cn}</div><div style={{fontSize:9,color:T.sub}}>{c.ca+" | "+c.po+"→"+c.pd+" | "+c.fpStatus}</div></div>
+    <div><div style={{fontSize:10,fontWeight:600}}>{c.cn}</div><div style={{fontSize:9,color:T.sub}} title={c.po+"→"+c.pd}>{c.ca+" | "+portShort(c.po)+"→"+portShort(c.pd)+" | "+c.fpStatus}</div></div>
     <div style={{textAlign:"right"}}><div style={{fontSize:12,fontWeight:700,color:T.green}}>{"Avoidable: "+fmt(c.todayCost)}</div><div style={{fontSize:10,color:T.sub}}>{"+3d: "+fmt(c.sav3d)+" | +7d: "+fmt(c.sav7d)}</div><div style={{fontSize:10,color:T.red}}>{"$"+c.daily+"/day"}</div></div>
   </div>;
 
@@ -1086,13 +926,13 @@ function OptimizerPage(){
       const totalExp=allContainers.reduce((s,c)=>s+c.todayCost,0);
       const totalBurn=allContainers.reduce((s,c)=>s+c.daily,0);
       const atRisk=allContainers.filter(c=>c.fpStatus!=="Green").length;
-      const potSavings=allContainers.slice(0,25).reduce((s,c)=>s+c.todayCost,0);
+      const topN=Math.min(25,allContainers.length);const potSavings=allContainers.slice(0,topN).reduce((s,c)=>s+c.todayCost,0);
       return <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:10,marginBottom:16}}>
         {[
           {label:predDays===0?"Total Accumulated Cost":"Projected Exposure",value:fmt(totalExp),sub:predDays===0?"accumulated to date (est.)":"if no action by "+predDate,color:T.red},
           {label:"Containers at Risk",value:atRisk,sub:"past or near free period threshold",color:T.amber},
           {label:"Daily Burn Rate",value:totalBurn>0?fmt(totalBurn)+"/d":"—",sub:"accumulating right now across portfolio",color:T.red},
-          {label:"Potential Savings (Top 25)",value:potSavings>0?fmt(potSavings):"—",sub:"if top 25 containers cleared today",color:T.green},
+          {label:"Potential Savings (Top "+topN+")",value:potSavings>0?fmt(potSavings):"—",sub:"if top "+topN+" containers cleared today",color:T.green},
         ].map((d,i)=><Card key={i} style={{padding:"14px 16px",borderLeft:"3px solid "+d.color}}>
           <div style={{fontSize:9,fontWeight:600,color:T.sub,textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:4}}>{d.label}</div>
           <div style={{fontSize:20,fontWeight:800,color:d.color}}>{d.value}</div>
@@ -1299,7 +1139,7 @@ function OptimizerPage(){
                       <tr key={c.cn} style={{background:i%2===0?"#fff":T.card2+"60"}}>
                         <td style={{padding:"5px 8px",fontWeight:600,fontFamily:"monospace",fontSize:10}}>{c.cn}</td>
                         <td style={{padding:"5px 8px",color:T.sub}}>{c.ca}</td>
-                        <td style={{padding:"5px 8px",color:T.sub,fontFamily:"monospace",fontSize:9}}>{c.po}→{c.pd}</td>
+                        <td style={{padding:"5px 8px",color:T.sub,fontFamily:"monospace",fontSize:9}} title={c.po+"→"+c.pd}>{portShort(c.po)}→{portShort(c.pd)}</td>
                         <td style={{padding:"5px 8px"}}><span style={{background:catColor(c.cat)+"20",color:catColor(c.cat),borderRadius:4,padding:"2px 6px",fontSize:9,fontWeight:600}}>{c.cat}</span></td>
                         <td style={{padding:"5px 8px"}}><span style={{color:c.fpStatus==="Expired"?T.red:c.fpStatus==="Green"?T.green:T.amber,fontWeight:600,fontSize:9}}>{c.fpStatus}</span></td>
                         <td style={{padding:"5px 8px",textAlign:"right",fontWeight:700,color:T.green}}>{fmt(c.todayCost)}<div style={{fontSize:8,color:T.sub}}>+3d:{fmt(c.sav3d)}</div></td>
@@ -1383,7 +1223,7 @@ function OptimizerPage(){
         const ContainerRow=({c,dimmed})=><tr style={{background:"#fff",opacity:dimmed?.35:1,borderBottom:"1px solid "+T.border+"30"}}>
           <td style={{padding:"5px 6px",fontFamily:"monospace",fontSize:10,fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:80}}>{c.cn}</td>
           <td style={{padding:"5px 6px",fontSize:10,color:T.sub}}>{c.ca}</td>
-          <td style={{padding:"5px 6px",fontSize:10,color:T.sub,whiteSpace:"nowrap"}}>{c.po+"→"+c.pd}</td>
+          <td style={{padding:"5px 6px",fontSize:10,color:T.sub,whiteSpace:"nowrap"}} title={c.po+"→"+c.pd}>{portShort(c.po)+"→"+portShort(c.pd)}</td>
           <td style={{padding:"5px 6px"}}><Badge color={catColor(c.cat)}>{c.cat}</Badge></td>
           <td style={{padding:"5px 6px",fontSize:10,color:c.fpStatus==="Expired"?T.red:c.fpStatus==="Green"?T.green:T.amber,fontWeight:600,whiteSpace:"nowrap"}}>{c.fpStatus}</td>
           <td style={{padding:"5px 6px",textAlign:"right"}}>
@@ -1610,6 +1450,7 @@ function SurchargePage({setPage,selectedPort,clearPort}){
   const[overrideDem,setOverrideDem]=useState(null);
   useEffect(()=>{setActivePort(selectedPort||null);},[selectedPort]);
   useEffect(()=>{if(!selectedPort)setActivePort(null);},[portTab]);
+  useEffect(()=>{setOverrideDet(null);setOverrideDem(null);},[activePort]);
   const cats=[{name:"Detention — Origin",side:"Origin",total:49169,containers:261,avgFP:5.1,color:T.amber},{name:"Detention — Dest",side:"Dest",total:1955,containers:8,avgFP:6.0,color:T.amber},{name:"Demurrage — Origin",side:"Origin",total:22353,containers:52,avgFP:3.1,color:T.purple},{name:"Demurrage — Dest",side:"Dest",total:5144,containers:12,avgFP:3.0,color:T.purple},{name:"Storage — Origin",side:"Origin",total:3075,containers:23,avgFP:3.1,color:T.green},{name:"Storage — Dest",side:"Dest",total:1295,containers:9,avgFP:3.0,color:T.green},{name:"Combined — Origin",side:"Origin",total:99565,containers:212,avgFP:9.9,color:T.red},{name:"Combined — Dest",side:"Dest",total:1814,containers:4,avgFP:12.0,color:T.red}];
   const detO=49169,demO=22353,dndO=99565,detD=1955,demD=5144,dndD=1814;
   const portAvgODet=BASE.topLanes.length>0?+(BASE.topLanes.reduce((s,l)=>s+l.avgODet*l.containers,0)/BASE.topLanes.reduce((s,l)=>s+l.containers,0)).toFixed(1):0;
@@ -1773,7 +1614,7 @@ function SurchargePage({setPage,selectedPort,clearPort}){
     </div>
     <Card style={{marginTop:14}}>
       <div style={{fontSize:14,fontWeight:600,marginBottom:3}}>Free Period Utilization — Portfolio</div><div style={{fontSize:11,color:T.sub,marginBottom:10}}>How much of your free period is consumed? {">"}90% = zero buffer, negotiate more days.</div>
-      {[{label:"Origin Detention (outside port)",avg:4.8,fp:5.1,color:T.amber},{label:"Origin Demurrage (at port)",avg:0.87,fp:3.1,color:T.purple},{label:"Dest Demurrage (at port)",avg:2.6,fp:3.0,color:T.green},{label:"Dest Detention (outside port)",avg:5.51,fp:6.0,color:T.red}].map((r,i)=>{const pct=Math.round((r.avg/r.fp)*100);const capped=Math.min(100,pct);const over=pct>100;return <div key={i} style={{marginBottom:10}}><div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}><span style={{fontSize:11,color:T.sub}}>{r.label}</span><span style={{fontSize:12,fontWeight:700,color:over?T.red:pct>90?T.red:pct>70?T.amber:T.green}}>{r.avg+"d / "+r.fp+"d ("+pct+"%)"}{over&&" ⚠ OVER"}</span></div><div style={{height:7,background:T.card2,borderRadius:4,overflow:"hidden",border:"none",boxShadow:"inset 0 1px 2px rgba(0,0,0,.06)",position:"relative"}}><div style={{height:"100%",width:capped+"%",background:over?T.red:pct>90?T.red:pct>70?T.amber:T.green,borderRadius:4}}/></div></div>;})}
+      {[{label:"Origin Detention (outside port)",avg:4.8,fp:5.1,color:T.amber},{label:"Origin Demurrage (at port)",avg:0.87,fp:3.1,color:T.purple},{label:"Dest Demurrage (at port)",avg:2.6,fp:3.0,color:T.purple},{label:"Dest Detention (outside port)",avg:5.51,fp:6.0,color:T.red}].map((r,i)=>{const pct=Math.round((r.avg/r.fp)*100);const capped=Math.min(100,pct);const over=pct>100;return <div key={i} style={{marginBottom:10}}><div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}><span style={{fontSize:11,color:T.sub}}>{r.label}</span><span style={{fontSize:12,fontWeight:700,color:over?T.red:pct>90?T.red:pct>70?T.amber:T.green}}>{r.avg+"d / "+r.fp+"d ("+pct+"%)"}{over&&" ⚠ OVER"}</span></div><div style={{height:7,background:T.card2,borderRadius:4,overflow:"hidden",border:"none",boxShadow:"inset 0 1px 2px rgba(0,0,0,.06)",position:"relative"}}><div style={{height:"100%",width:capped+"%",background:over?T.red:pct>90?T.red:pct>70?T.amber:T.green,borderRadius:4}}/></div></div>;})}
       <Insight text={(()=>{const detAvg=BASE.stageDays.origin_detention.avg;const detFP=BASE.costMatrix.detention_origin.avgFP;const util=Math.round(detAvg/detFP*100);const newFP=detFP+1;const newUtil=Math.round(detAvg/newFP*100);return "Origin Detention (outside port) at "+util+"% utilization ("+detAvg+"d avg vs "+detFP+"d free). Negotiating 1 extra free day ("+detFP+"d → "+newFP+"d) reduces utilization to ~"+newUtil+"%.";})()}/>
     </Card>
     <div style={{marginTop:16,marginBottom:4}}>
