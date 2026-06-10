@@ -33,17 +33,17 @@ const BASE={
 };
 const CDATA={topRisk:[
   {cn:"HLCU_021020",ca:"HLCU",po:"DEWVN",pd:"CNTAO",oDet:11.1,risk:80,cat:"Detention",cost:726,cost3d:1476,cost7d:2976,stage:"Gate In POL"},
-  {cn:"COSU_120720",ca:"COSU",po:"DEBRV",pd:"PHMNN",oDet:51.2,risk:80,cat:"Combined D&D",cost:2737,cost3d:4237,cost7d:6737,stage:"Load POL"},
+  {cn:"COSU_120720",ca:"COSU",po:"DEBRV",pd:"PHMNN",oDet:51.2,risk:80,cat:"Bundled D&D",cost:2737,cost3d:4237,cost7d:6737,stage:"Load POL"},
   {cn:"OOLU_131020",ca:"OOLU",po:"CNSHA",pd:"BEZEE",oDet:9.9,risk:77,cat:"Demurrage",cost:687,cost3d:1707,cost7d:3387,stage:"Gate In POL"},
   {cn:"ONEY_150920",ca:"ONEY",po:"DEHAM",pd:"ILASH",oDet:99.0,risk:77,cat:"Detention",cost:5117,cost3d:6887,cost7d:10247,stage:"Ocean Transit"},
   {cn:"HLCU_221020",ca:"HLCU",po:"DEBRV",pd:"USORF",oDet:10.0,risk:77,cat:"Detention",cost:631,cost3d:1381,cost7d:2631,stage:"Gate In POL"},
-  {cn:"MAEU_170620",ca:"MAEU",po:"DEBRV",pd:"USEWR",oDet:83.8,risk:76,cat:"Combined D&D",cost:4374,cost3d:5994,cost7d:9234,stage:"Ocean Transit"},
-  {cn:"MAEU_150620",ca:"MAEU",po:"DEBRV",pd:"DZALG",oDet:79.7,risk:75,cat:"Combined D&D",cost:4187,cost3d:5807,cost7d:8867,stage:"Discharge POD"},
+  {cn:"MAEU_170620",ca:"MAEU",po:"DEBRV",pd:"USEWR",oDet:83.8,risk:76,cat:"Bundled D&D",cost:4374,cost3d:5994,cost7d:9234,stage:"Ocean Transit"},
+  {cn:"MAEU_150620",ca:"MAEU",po:"DEBRV",pd:"DZALG",oDet:79.7,risk:75,cat:"Bundled D&D",cost:4187,cost3d:5807,cost7d:8867,stage:"Discharge POD"},
   {cn:"CMDU_191020",ca:"CMDU",po:"DEWVN",pd:"DZORN",oDet:10.5,risk:75,cat:"Storage",cost:709,cost3d:1729,cost7d:3389,stage:"Gate In POL"},
   {cn:"MSCU_080620",ca:"MSCU",po:"DEHAM",pd:"BHBAH",oDet:46.8,risk:74,cat:"Detention",cost:2438,cost3d:3788,cost7d:6038,stage:"Ocean Transit"},
   {cn:"ONEY_021120",ca:"ONEY",po:"DEBRV",pd:"CNJMN",oDet:9.8,risk:74,cat:"Demurrage",cost:624,cost3d:1374,cost7d:2624,stage:"Gate Out POD"}
 ]};
-const COST_CATS=[{name:"Detention",oKey:"detention_origin",dKey:"detention_destination",color:"#D97706"},{name:"Demurrage",oKey:"demurrage_origin",dKey:"demurrage_destination",color:"#7C3AED"},{name:"Storage",oKey:"storage_origin",dKey:"storage_destination",color:"#059669"},{name:"Combined D&D",oKey:"dnd_origin",dKey:"dnd_destination",color:"#EF4444"}];
+const COST_CATS=[{name:"Detention",oKey:"detention_origin",dKey:"detention_destination",color:"#D97706"},{name:"Demurrage",oKey:"demurrage_origin",dKey:"demurrage_destination",color:"#7C3AED"},{name:"Storage",oKey:"storage_origin",dKey:"storage_destination",color:"#059669"},{name:"Bundled D&D",oKey:"dnd_origin",dKey:"dnd_destination",color:"#EF4444"}];
 const PORT_NAMES={DEHAM:"Hamburg",DEBRV:"Bremerhaven",DEWVN:"Wilhelmshaven",CNSHA:"Shanghai",CNTAO:"Qingdao",CNYTN:"Yantian",CNJMN:"Jiujiang",NLRTM:"Rotterdam",BEZEE:"Zeebrugge",SGSIN:"Singapore",USORF:"Norfolk",USEWR:"Newark",USCHS:"Charleston",THLCH:"Laem Chabang",TWKEL:"Keelung",JPNGO:"Nagoya",ILASH:"Ashdod",DZALG:"Algiers",DZORN:"Oran",BHBAH:"Bahrain",PHMNN:"Gen. Santos"};
 const portLabel=code=>PORT_NAMES[code]?PORT_NAMES[code]+" ("+code+")":code;
 const portShort=code=>PORT_NAMES[code]||code;
@@ -343,7 +343,7 @@ function CostPage({setPage,allowedTabs}){
             {name:"Detention",                  oKey:"detention_origin",                  dKey:"detention_destination",                  color:T.amber},
             {name:"Demurrage",                  oKey:"demurrage_origin",                  dKey:"demurrage_destination",                  color:T.purple},
             {name:"Storage",                    oKey:"storage_origin",                    dKey:"storage_destination",                    color:T.green},
-            {name:"Combined D&D",                 oKey:"dnd_origin",                        dKey:"dnd_destination",                        color:T.red},
+            {name:"Bundled D&D",                 oKey:"dnd_origin",                        dKey:"dnd_destination",                        color:T.red},
             {name:"Demurrage + Storage",        oKey:"demurrageStorage_origin",           dKey:"demurrageStorage_destination",           color:T.purple},
             {name:"Detention + Demurrage",      oKey:"detentionDemurrage_origin",         dKey:"detentionDemurrage_destination",         color:T.amber},
             {name:"Det. + Dem. + Storage",      oKey:"detentionDemurrageStorage_origin",  dKey:"detentionDemurrageStorage_destination",  color:T.red},
@@ -386,7 +386,7 @@ const SCATTER_CATS=[
   {id:"detention",label:"Detention",  xKey:"avgODet",yKey:"avgDDet",fpX:5.1,fpY:6.0,xLabel:"Origin Det (days)",yLabel:"Dest Det (days)",color:T.amber},
   {id:"demurrage",label:"Demurrage", xKey:"avgODem",yKey:"avgDDem",fpX:3.1,fpY:3.0,xLabel:"Origin Dem (days)",yLabel:"Dest Dem (days)",color:T.purple},
   {id:"storage",  label:"Storage",   xKey:"avgOSto",yKey:"avgDSto",fpX:3.1,fpY:3.0,xLabel:"Origin Sto (days)",yLabel:"Dest Sto (days)",color:T.green},
-  {id:"combined", label:"Combined D&D",xKey:"totalO",yKey:"totalD",fpX:9.9,fpY:9.0,xLabel:"Origin Total (days)",yLabel:"Dest Total (days)",color:T.red},
+  {id:"combined", label:"Bundled D&D",xKey:"totalO",yKey:"totalD",fpX:9.9,fpY:9.0,xLabel:"Origin Total (days)",yLabel:"Dest Total (days)",color:T.red},
 ];
 
 function CarrierPage({setPage,allowedTabs}){
@@ -657,6 +657,62 @@ if(view==="exceeding"){
       <div style={{fontSize:9,color:T.dim,marginTop:6}}>Carrier scores are for evaluation only. Business relationships and other factors can also influence decisions.</div>
     </Card>
 
+    {selCarrier&&(()=>{const rows=CDATA.topRisk.filter(c=>c.ca===selCarrier);const cd=BASE.carriers[selCarrier];const risk=cd?Math.min(100,Math.round(Math.max(0,cd.avgODet-5.1)*15+Math.max(0,cd.avgODem-3.1)*10+Math.max(0,cd.avgOSto-3.1)*6+Math.max(0,cd.avgOComb-9.9)*10+Math.max(0,cd.avgDDet-6.0)*12+Math.max(0,cd.avgDDem-3.0)*8+Math.max(0,cd.avgDSto-3.0)*5+Math.max(0,cd.avgDComb-12.0)*8)):0;
+      return <Card style={{marginTop:10}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+          <div>
+            <div style={{fontSize:13,fontWeight:700}}>{selCarrier} — Container Detail</div>
+            <div style={{fontSize:10,color:T.sub,marginTop:2}}>Avg Score (scorecard): <span style={{fontWeight:700,color:risk<40?T.green:risk<70?T.amber:T.red}}>{risk}</span> — based on portfolio average dwell vs free period.</div>
+          </div>
+          <button onClick={()=>setSelCarrier(null)} style={{background:"none",border:"none",cursor:"pointer"}}><X size={14} color={T.dim}/></button>
+        </div>
+        {rows.length>0&&<div style={{background:T.amberBg,border:"1px solid "+T.amber+"30",borderRadius:8,padding:"7px 12px",marginBottom:10,fontSize:10,color:T.sub}}>
+          <span style={{fontWeight:700,color:T.amber}}>Note: </span>{"Avg Score reflects the carrier's average across all "+cd?.containers+" containers. Individual containers below may have higher risk scores if specific shipments ran significantly over free period — this does not mean the carrier's overall performance is poor."}
+        </div>}
+        {!rows.length?(
+          <div>
+            <div style={{background:T.greenBg,border:"1px solid "+T.green+"40",borderRadius:10,padding:"12px 14px",marginBottom:10}}>
+              <div style={{fontSize:12,fontWeight:700,color:T.green,marginBottom:4}}>{"✓ No priority containers for "+selCarrier}</div>
+              <div style={{fontSize:10,color:T.sub}}>{"None of this carrier's "+(cd?.containers||"—")+" containers breach the top-risk threshold. Avg Score "+risk+" confirms performance within acceptable range."}</div>
+            </div>
+            {cd&&<div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8}}>
+              {[{l:"Portfolio",v:cd.containers+" containers",c:T.text},{l:"O.Det avg",v:cd.avgODet+"d",c:cd.avgODet>5.1?T.red:T.green},{l:"O.Dem avg",v:cd.avgODem+"d",c:cd.avgODem>3.1?T.red:T.green},{l:"O.Comb avg",v:cd.avgOComb+"d",c:cd.avgOComb>9.9?T.red:T.green},{l:"D.Det avg",v:cd.avgDDet+"d",c:cd.avgDDet>6.0?T.red:T.green},{l:"D.Dem avg",v:cd.avgDDem+"d",c:cd.avgDDem>3.0?T.red:T.green},{l:"D.Comb avg",v:cd.avgDComb+"d",c:cd.avgDComb>12.0?T.red:T.green},{l:"Avg Score",v:risk,c:risk<40?T.green:risk<70?T.amber:T.red}].map(s=><div key={s.l} style={{background:T.card2,borderRadius:8,padding:"8px 10px",textAlign:"center"}}>
+                <div style={{fontSize:14,fontWeight:700,color:s.c}}>{s.v}</div>
+                <div style={{fontSize:9,color:T.sub,marginTop:2}}>{s.l}</div>
+              </div>)}
+            </div>}
+          </div>
+        ):(
+          <table style={{width:"100%",borderCollapse:"separate",borderSpacing:"0 4px",fontSize:10}}>
+            <thead><tr style={{color:T.dim,fontSize:9,background:T.card2}}>
+              {["Container","Lane","Category","Stage","Days Beyond FP","Daily Burn","Total Cost","Status"].map(h=><th key={h} style={{padding:"5px 6px",textAlign:["Days Beyond FP","Daily Burn","Total Cost"].includes(h)?"right":"left",fontWeight:600,textTransform:"uppercase",letterSpacing:"0.4px"}}>
+                {h}
+                {h==="Days Beyond FP"&&<HoverTip text="How many days this container has exceeded its free period."/>}
+                {h==="Daily Burn"&&<HoverTip text="Estimated D&D cost accumulating per day for this container."/>}
+                {h==="Status"&&<HoverTip text="Individual container risk — can be high even when carrier avg score is low."/>}
+              </th>)}
+            </tr></thead>
+            <tbody>{rows.map((c,i)=>{
+              const fpThreshold=c.cat==="Detention"?5.1:c.cat==="Demurrage"?3.1:c.cat==="Storage"?3.1:9.9;
+              const daysBeyond=Math.max(0,+(c.oDet-fpThreshold).toFixed(1));
+              const daily=Math.max(0,Math.round((c.cost3d-c.cost)/3));
+              return <tr key={i} style={{background:T.card2}}>
+                <td style={{padding:"5px 6px",borderRadius:"6px 0 0 6px",fontFamily:"monospace",fontSize:10,fontWeight:600}}>{c.cn}</td>
+                <td style={{padding:"5px 6px",color:T.sub,fontSize:9}} title={c.po+"→"+c.pd}>{portShort(c.po)+"→"+portShort(c.pd)}</td>
+                <td style={{padding:"5px 6px"}}><Badge color={catColor(c.cat)}>{c.cat}</Badge></td>
+                <td style={{padding:"5px 6px",fontSize:9,color:T.sub}}>{c.stage}</td>
+                <td style={{padding:"5px 6px",fontWeight:600,textAlign:"right",color:daysBeyond>0?T.red:T.green}}>{daysBeyond>0?"+"+daysBeyond+"d":"Within FP"}</td>
+                <td style={{padding:"5px 6px",fontWeight:600,textAlign:"right",color:daily>0?T.red:T.sub}}>{daily>0?fmt(daily)+"/d":"—"}</td>
+                <td style={{padding:"5px 6px",fontWeight:600,textAlign:"right"}}>{fmt(c.cost)}</td>
+                <td style={{padding:"5px 6px",borderRadius:"0 6px 6px 0",textAlign:"right"}}><SolidBadge color={c.risk>=75?T.red:c.risk>=50?T.amber:T.green}>{c.risk>=75?"High":c.risk>=50?"Medium":"Low"}</SolidBadge></td>
+              </tr>;
+            })}
+            </tbody>
+          </table>
+        )}
+      </Card>;
+    })()}
+
     <div style={{marginTop:18,marginBottom:10,borderTop:"2px solid "+T.border,paddingTop:14}}>
       <div style={{fontSize:10,fontWeight:700,color:T.sub,textTransform:"uppercase",letterSpacing:"1px"}}>Why Is This Carrier Expensive?</div>
       <div style={{fontSize:10,color:T.dim,marginTop:2}}>% of contracted free period used per carrier — origin vs destination. Red bars exceed 100% (paid tier). Use to identify which carrier and side to escalate in negotiations.</div>
@@ -726,61 +782,6 @@ if(view==="exceeding"){
       </div>
     </div>}
 
-    {selCarrier&&(()=>{const rows=CDATA.topRisk.filter(c=>c.ca===selCarrier);const cd=BASE.carriers[selCarrier];const risk=cd?Math.min(100,Math.round(Math.max(0,cd.avgODet-5.1)*15+Math.max(0,cd.avgODem-3.1)*10+Math.max(0,cd.avgOSto-3.1)*6+Math.max(0,cd.avgOComb-9.9)*10+Math.max(0,cd.avgDDet-6.0)*12+Math.max(0,cd.avgDDem-3.0)*8+Math.max(0,cd.avgDSto-3.0)*5+Math.max(0,cd.avgDComb-12.0)*8)):0;
-      return <Card style={{marginTop:10}}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-          <div>
-            <div style={{fontSize:13,fontWeight:700}}>{selCarrier} — Container Detail</div>
-            <div style={{fontSize:10,color:T.sub,marginTop:2}}>Avg Score (scorecard): <span style={{fontWeight:700,color:risk<40?T.green:risk<70?T.amber:T.red}}>{risk}</span> — based on portfolio average dwell vs free period.</div>
-          </div>
-          <button onClick={()=>setSelCarrier(null)} style={{background:"none",border:"none",cursor:"pointer"}}><X size={14} color={T.dim}/></button>
-        </div>
-        {rows.length>0&&<div style={{background:T.amberBg,border:"1px solid "+T.amber+"30",borderRadius:8,padding:"7px 12px",marginBottom:10,fontSize:10,color:T.sub}}>
-          <span style={{fontWeight:700,color:T.amber}}>Note: </span>{"Avg Score reflects the carrier's average across all "+cd?.containers+" containers. Individual containers below may have higher risk scores if specific shipments ran significantly over free period — this does not mean the carrier's overall performance is poor."}
-        </div>}
-        {!rows.length?(
-          <div>
-            <div style={{background:T.greenBg,border:"1px solid "+T.green+"40",borderRadius:10,padding:"12px 14px",marginBottom:10}}>
-              <div style={{fontSize:12,fontWeight:700,color:T.green,marginBottom:4}}>{"✓ No priority containers for "+selCarrier}</div>
-              <div style={{fontSize:10,color:T.sub}}>{"None of this carrier's "+(cd?.containers||"—")+" containers breach the top-risk threshold. Avg Score "+risk+" confirms performance within acceptable range."}</div>
-            </div>
-            {cd&&<div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8}}>
-              {[{l:"Portfolio",v:cd.containers+" containers",c:T.text},{l:"O.Det avg",v:cd.avgODet+"d",c:cd.avgODet>5.1?T.red:T.green},{l:"O.Dem avg",v:cd.avgODem+"d",c:cd.avgODem>3.1?T.red:T.green},{l:"O.Comb avg",v:cd.avgOComb+"d",c:cd.avgOComb>9.9?T.red:T.green},{l:"D.Det avg",v:cd.avgDDet+"d",c:cd.avgDDet>6.0?T.red:T.green},{l:"D.Dem avg",v:cd.avgDDem+"d",c:cd.avgDDem>3.0?T.red:T.green},{l:"D.Comb avg",v:cd.avgDComb+"d",c:cd.avgDComb>12.0?T.red:T.green},{l:"Avg Score",v:risk,c:risk<40?T.green:risk<70?T.amber:T.red}].map(s=><div key={s.l} style={{background:T.card2,borderRadius:8,padding:"8px 10px",textAlign:"center"}}>
-                <div style={{fontSize:14,fontWeight:700,color:s.c}}>{s.v}</div>
-                <div style={{fontSize:9,color:T.sub,marginTop:2}}>{s.l}</div>
-              </div>)}
-            </div>}
-          </div>
-        ):(
-          <table style={{width:"100%",borderCollapse:"separate",borderSpacing:"0 4px",fontSize:10}}>
-            <thead><tr style={{color:T.dim,fontSize:9,background:T.card2}}>
-              {["Container","Lane","Category","Stage","Days Beyond FP","Daily Burn","Total Cost","Status"].map(h=><th key={h} style={{padding:"5px 6px",textAlign:["Days Beyond FP","Daily Burn","Total Cost"].includes(h)?"right":"left",fontWeight:600,textTransform:"uppercase",letterSpacing:"0.4px"}}>
-                {h}
-                {h==="Days Beyond FP"&&<HoverTip text="How many days this container has exceeded its free period."/>}
-                {h==="Daily Burn"&&<HoverTip text="Estimated D&D cost accumulating per day for this container."/>}
-                {h==="Status"&&<HoverTip text="Individual container risk — can be high even when carrier avg score is low."/>}
-              </th>)}
-            </tr></thead>
-            <tbody>{rows.map((c,i)=>{
-              const fpThreshold=c.cat==="Detention"?5.1:c.cat==="Demurrage"?3.1:c.cat==="Storage"?3.1:9.9;
-              const daysBeyond=Math.max(0,+(c.oDet-fpThreshold).toFixed(1));
-              const daily=Math.max(0,Math.round((c.cost3d-c.cost)/3));
-              return <tr key={i} style={{background:T.card2}}>
-                <td style={{padding:"5px 6px",borderRadius:"6px 0 0 6px",fontFamily:"monospace",fontSize:10,fontWeight:600}}>{c.cn}</td>
-                <td style={{padding:"5px 6px",color:T.sub,fontSize:9}} title={c.po+"→"+c.pd}>{portShort(c.po)+"→"+portShort(c.pd)}</td>
-                <td style={{padding:"5px 6px"}}><Badge color={catColor(c.cat)}>{c.cat}</Badge></td>
-                <td style={{padding:"5px 6px",fontSize:9,color:T.sub}}>{c.stage}</td>
-                <td style={{padding:"5px 6px",fontWeight:600,textAlign:"right",color:daysBeyond>0?T.red:T.green}}>{daysBeyond>0?"+"+daysBeyond+"d":"Within FP"}</td>
-                <td style={{padding:"5px 6px",fontWeight:600,textAlign:"right",color:daily>0?T.red:T.sub}}>{daily>0?fmt(daily)+"/d":"—"}</td>
-                <td style={{padding:"5px 6px",fontWeight:600,textAlign:"right"}}>{fmt(c.cost)}</td>
-                <td style={{padding:"5px 6px",borderRadius:"0 6px 6px 0",textAlign:"right"}}><SolidBadge color={c.risk>=75?T.red:c.risk>=50?T.amber:T.green}>{c.risk>=75?"High":c.risk>=50?"Medium":"Low"}</SolidBadge></td>
-              </tr>;
-            })}
-            </tbody>
-          </table>
-        )}
-      </Card>;
-    })()}
   </div>);
 }
 
@@ -802,12 +803,12 @@ function OptimizerPage(){
   const[bSortCol,setBSortCol]=useState("todayCost");const[bSortDir,setBSortDir]=useState("desc");
 
   const predDays=useMemo(()=>Math.max(0,Math.round((new Date(predDate)-new Date(new Date().toISOString().slice(0,10)))/86400000)),[predDate]);
-  const CAT_META={Detention:{fp:5.1,c:T.amber},Demurrage:{fp:3.1,c:T.purple},Storage:{fp:3.1,c:T.green},"Combined D&D":{fp:9.9,c:T.red}};
+  const CAT_META={Detention:{fp:5.1,c:T.amber},Demurrage:{fp:3.1,c:T.purple},Storage:{fp:3.1,c:T.green},"Bundled D&D":{fp:9.9,c:T.red}};
   // predCost derived from allContainers so table always matches widget total
   const predCost=useMemo(()=>{
     const grouped={};
     CDATA.topRisk.forEach(c=>{
-      const key=c.cat in CAT_META?c.cat:"Combined D&D";
+      const key=c.cat in CAT_META?c.cat:"Bundled D&D";
       if(!grouped[key])grouped[key]={total:0,count:0,totalDaily:0};
       const daily=Math.max(0,Math.round((c.cost3d-c.cost)/3));
       const todayCost=predDays>0?daily*predDays:c.cost;
@@ -910,19 +911,24 @@ function OptimizerPage(){
         }
         return s;
       },0);
-      const totalBurn=forecastContainers.reduce((s,c)=>s+c.daily,0);
-      return{day:dayLabel,offset:i,cumulativeCost:Math.round(dayCost),dailyBurn:totalBurn};
+      const dailyBurnOnDay=forecastContainers.reduce((s,c)=>{
+        const alreadyExpired2=c.fpStatus==="Expired";
+        const daysRemaining2=c.fpStatus==="Expiring Today"?0:c.fpStatus==="Expiring 48h"?1:c.fpStatus==="Green"?5:-1;
+        const startsOnDay2=alreadyExpired2?0:Math.max(0,daysRemaining2);
+        return i>=startsOnDay2?s+c.daily:s;
+      },0);
+      return{day:dayLabel,offset:i,cumulativeCost:Math.round(dayCost),dailyBurn:dailyBurnOnDay};
     });
   },[forecastContainers]);
 
   // Charge breakdown scales with forecast date — each day adds proportional accrual to base portfolio
   const chargeData=useMemo(()=>{
-    const acc={Origin:{Detention:0,Demurrage:0,Storage:0,"Combined D&D":0},Dest:{Detention:0,Demurrage:0,Storage:0,"Combined D&D":0}};
+    const acc={Origin:{Detention:0,Demurrage:0,Storage:0,"Bundled D&D":0},Dest:{Detention:0,Demurrage:0,Storage:0,"Bundled D&D":0}};
     CDATA.topRisk.forEach(c=>{
       const daily=Math.max(0,Math.round((c.cost3d-c.cost)/3));
       const val=predDays>0?daily*predDays:c.cost;
       const sideKey=["Gate Out POD","Discharge POD","Empty Return"].includes(c.stage)?"Dest":"Origin";
-      const catKey=c.cat in acc.Origin?c.cat:"Combined D&D";
+      const catKey=c.cat in acc.Origin?c.cat:"Bundled D&D";
       acc[sideKey][catKey]+=val;
     });
     return[{side:"Origin",...acc.Origin},{side:"Dest",...acc.Dest}];
@@ -1036,15 +1042,15 @@ function OptimizerPage(){
     })()}
 
     {/* CHARGE BREAKDOWN */}
-    <ChartBox title="Split By Charge Type & Location" sub="All 4 charge types compared across origin and destination" h={200} insight={(()=>{const o=chargeData[0];const cats=["Detention","Demurrage","Storage","Combined D&D"].map(k=>({n:k,v:o[k]||0}));const top=cats.reduce((a,b)=>b.v>a.v?b:a);return top.n+" at origin ("+fmt(top.v)+") is the dominant charge type. "+(top.n==="Combined D&D"?"Evaluate whether separate rates would be cheaper in Surcharges tab.":"Focus on reducing origin "+top.n.toLowerCase()+" dwell.");})()}><ResponsiveContainer><BarChart data={chargeData}><CartesianGrid strokeDasharray="3 3" stroke={T.border+"60"}/><XAxis dataKey="side" stroke={T.dim} fontSize={10}/><YAxis stroke={T.dim} fontSize={10} tickFormatter={v=>fmt(v)}/><Tooltip content={<CTip/>}/><Legend formatter={v=><span style={{fontSize:9,color:T.sub}}>{v}</span>}/><Bar dataKey="Detention" fill={T.amber}/><Bar dataKey="Demurrage" fill={T.purple}/><Bar dataKey="Storage" fill={T.green}/><Bar dataKey="Combined D&D" fill={T.red}/></BarChart></ResponsiveContainer></ChartBox>
+    <ChartBox title="Split By Charge Type & Location" sub="All 4 charge types compared across origin and destination" h={200} insight={(()=>{const o=chargeData[0];const cats=["Detention","Demurrage","Storage","Bundled D&D"].map(k=>({n:k,v:o[k]||0}));const top=cats.reduce((a,b)=>b.v>a.v?b:a);return top.n+" at origin ("+fmt(top.v)+") is the dominant charge type. "+(top.n==="Bundled D&D"?"Evaluate whether separate rates would be cheaper in Surcharges tab.":"Focus on reducing origin "+top.n.toLowerCase()+" dwell.");})()}><ResponsiveContainer><BarChart data={chargeData}><CartesianGrid strokeDasharray="3 3" stroke={T.border+"60"}/><XAxis dataKey="side" stroke={T.dim} fontSize={10}/><YAxis stroke={T.dim} fontSize={10} tickFormatter={v=>fmt(v)}/><Tooltip content={<CTip/>}/><Legend formatter={v=><span style={{fontSize:9,color:T.sub}}>{v}</span>}/><Bar dataKey="Detention" fill={T.amber}/><Bar dataKey="Demurrage" fill={T.purple}/><Bar dataKey="Storage" fill={T.green}/><Bar dataKey="Bundled D&D" fill={T.red}/></BarChart></ResponsiveContainer></ChartBox>
 
     {/* ── PRIORITIZATION STRATEGIES ── */}
     {(()=>{
       const presets=[
-        {label:"High Savings",icon:"💰",desc:"Highest avoidable cost today",apply:()=>{setAFpStatus("All");setACat("All");setARisk("All");setACostBand("High Impact");setATopN("25");setBFpStatus("Expired");setBCat("All");setBRisk("High");setBCostBand("All");setBTopN("All");}},
-        {label:"High Risk",icon:"🚨",desc:"Expired + High risk only",apply:()=>{setAFpStatus("Expired");setACat("All");setARisk("High");setACostBand("All");setATopN("All");setBFpStatus("Expiring Today");setBCat("All");setBRisk("All");setBCostBand("All");setBTopN("All");}},
-        {label:"Port vs Depot",icon:"🎯",desc:"Port charges (Demurrage) vs depot charges (Detention)",apply:()=>{setAFpStatus("All");setACat("Demurrage");setARisk("All");setACostBand("All");setATopN("All");setACarF("All");setAPolF("All");setAPodF("All");setBFpStatus("All");setBCat("Detention");setBRisk("All");setBCostBand("All");setBTopN("All");setBCarF("All");setBPolF("All");setBPodF("All");}},
-        {label:"Carrier Compare",icon:"🚢",desc:"Two highest-risk carriers side by side",apply:()=>{setAFpStatus("All");setACat("All");setARisk("All");setACostBand("All");setACarF("OOLU");setATopN("All");setAPolF("All");setAPodF("All");setBFpStatus("All");setBCat("All");setBRisk("All");setBCostBand("All");setBCarF("MAEU");setBTopN("All");setBPolF("All");setBPodF("All");}},
+        {label:"High Savings",icon:"💰",desc:"Highest avoidable cost today",apply:()=>{setAFpStatus("All");setACat("All");setARisk("All");setACostBand("High Impact");setATopN("25");setBFpStatus("Expired");setBCat("All");setBRisk("High");setBCostBand("All");setBTopN("All");setFFpStatus("All");setFCat("All");setFRisk("All");setFCarF("All");}},
+        {label:"High Risk",icon:"🚨",desc:"Expired + High risk only",apply:()=>{setAFpStatus("Expired");setACat("All");setARisk("High");setACostBand("All");setATopN("All");setBFpStatus("Expiring Today");setBCat("All");setBRisk("All");setBCostBand("All");setBTopN("All");setFFpStatus("Expired");setFCat("All");setFRisk("High");setFCarF("All");}},
+        {label:"Port vs Depot",icon:"🎯",desc:"Port charges (Demurrage) vs depot charges (Detention)",apply:()=>{setAFpStatus("All");setACat("Demurrage");setARisk("All");setACostBand("All");setATopN("All");setACarF("All");setAPolF("All");setAPodF("All");setBFpStatus("All");setBCat("Detention");setBRisk("All");setBCostBand("All");setBTopN("All");setBCarF("All");setBPolF("All");setBPodF("All");setFFpStatus("All");setFCat("Demurrage");setFRisk("All");setFCarF("All");}},
+        {label:"Carrier Compare",icon:"🚢",desc:"Two highest-risk carriers side by side",apply:()=>{setAFpStatus("All");setACat("All");setARisk("All");setACostBand("All");setACarF("OOLU");setATopN("All");setAPolF("All");setAPodF("All");setBFpStatus("All");setBCat("All");setBRisk("All");setBCostBand("All");setBCarF("MAEU");setBTopN("All");setBPolF("All");setBPodF("All");setFFpStatus("All");setFCat("All");setFRisk("All");setFCarF("OOLU");}},
       ];
       return <div style={{marginBottom:14}}>
         <div style={{fontSize:10,fontWeight:700,color:T.sub,textTransform:"uppercase",letterSpacing:"1px",marginBottom:8}}>Prioritization Strategies — Quick Load</div>
@@ -1089,7 +1095,7 @@ function OptimizerPage(){
               <div style={{fontSize:10,fontWeight:700,color:T.sub,alignSelf:"center",marginRight:4}}>Filters:</div>
               {[
                 {label:"Free Period",val:fFpStatus,set:setFFpStatus,opts:["Expired","Expiring Today","Expiring 48h","Green"]},
-                {label:"Category",val:fCat,set:setFCat,opts:["Detention","Demurrage","Storage","Combined D&D"]},
+                {label:"Category",val:fCat,set:setFCat,opts:["Detention","Demurrage","Storage","Bundled D&D"]},
                 {label:"Risk",val:fRisk,set:setFRisk,opts:["High","Medium","Low"]},
                 {label:"POL",val:fPolF,set:setFPolF,opts:filterOpts.pols},
                 {label:"POD",val:fPodF,set:setFPodF,opts:filterOpts.pods},
@@ -1186,7 +1192,7 @@ function OptimizerPage(){
           <div style={{background:T.blue+"08",border:"1px solid "+T.blue+"25",borderTop:"none",borderRadius:"0 0 8px 8px",padding:"8px 10px",marginBottom:8}}>
             <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:6,marginBottom:6}}>
               {[{l:"Free Period",v:aFpStatus,s:setAFpStatus,opts:["Expired","Expiring Today","Expiring 48h","Green"]},
-                {l:"Category",v:aCat,s:setACat,opts:["Detention","Demurrage","Storage","Combined D&D"]},
+                {l:"Category",v:aCat,s:setACat,opts:["Detention","Demurrage","Storage","Bundled D&D"]},
                 {l:"Risk",v:aRisk,s:setARisk,opts:["High","Medium","Low"]},
               ].map(f=><div key={f.l}><div style={{fontSize:9,fontWeight:600,color:T.blue,marginBottom:2}}>{f.l}</div><select value={f.v} onChange={e=>f.s(e.target.value)} style={{...selStyle,width:"100%",borderColor:T.blue+"40"}}><option value="All">All</option>{f.opts.map(o=><option key={o} value={o}>{o}</option>)}</select></div>)}
             </div>
@@ -1217,7 +1223,7 @@ function OptimizerPage(){
           <div style={{background:T.purple+"08",border:"1px solid "+T.purple+"25",borderTop:"none",borderRadius:"0 0 8px 8px",padding:"8px 10px",marginBottom:8}}>
             <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:6,marginBottom:6}}>
               {[{l:"Free Period",v:bFpStatus,s:setBFpStatus,opts:["Expired","Expiring Today","Expiring 48h","Green"]},
-                {l:"Category",v:bCat,s:setBCat,opts:["Detention","Demurrage","Storage","Combined D&D"]},
+                {l:"Category",v:bCat,s:setBCat,opts:["Detention","Demurrage","Storage","Bundled D&D"]},
                 {l:"Risk",v:bRisk,s:setBRisk,opts:["High","Medium","Low"]},
               ].map(f=><div key={f.l}><div style={{fontSize:9,fontWeight:600,color:T.purple,marginBottom:2}}>{f.l}</div><select value={f.v} onChange={e=>f.s(e.target.value)} style={{...selStyle,width:"100%",borderColor:T.purple+"40"}}><option value="All">All</option>{f.opts.map(o=><option key={o} value={o}>{o}</option>)}</select></div>)}
             </div>
@@ -1295,7 +1301,7 @@ function OptimizerPage(){
     <Card style={{marginTop:14}}>
       <div style={{fontSize:14,fontWeight:700,marginBottom:10}}>Actionable Observations</div>
       {(()=>{const detFP=BASE.costMatrix.detention_origin.avgFP;const detAvg=BASE.stageDays.origin_detention.avg;const detUtil=Math.round(detAvg/detFP*100);const combPct=Math.round(BASE.costMatrix.dnd_origin.total/BASE.grandTotal*100);const sepT=BASE.costMatrix.detention_origin.total+BASE.costMatrix.demurrage_origin.total;const combPrem=sepT>0?Math.round((BASE.costMatrix.dnd_origin.total-sepT)/sepT*100):0;const top3=allContainers.slice(0,3);const top3burn=top3.reduce((s,c)=>s+c.daily,0);const top3sav=top3.reduce((s,c)=>s+c.sav3d,0);const maxODet=top3.length>0?Math.max(...top3.map(c=>c.oDet)):0;return[{c:T.green,t:"Origin detention at "+detUtil+"% free-time utilization",b:"Avg "+detAvg+"d vs "+detFP+"d free. "+(detUtil>90?"Any delay triggers charges immediately.":"Some buffer remains but monitor closely."),a:"Coordinate with depot to ensure gate-in within "+Math.floor(detFP)+" days of pickup."},
-        {c:T.amber,t:"Combined D&D origin = "+combPct+"% of total cost",b:"Combined rate is "+combPrem+"% more expensive than separate on origin lanes.",a:"Evaluate switching to separate rates in Surcharges tab."},
+        {c:T.amber,t:"Bundled D&D origin = "+combPct+"% of total cost",b:"Combined rate is "+combPrem+"% more expensive than separate on origin lanes.",a:"Evaluate switching to separate rates in Surcharges tab."},
         {c:T.red,t:"Top 3 containers burn "+fmt(top3burn)+"/day combined",b:"These have been in origin detention for "+Math.round(maxODet)+"+ days, deep in higher tier rates.",a:"Clearing within 3 days avoids "+fmt(top3sav)+" in additional charges."}]})().map((ins,i)=><div key={i} style={{background:T.card2,borderRadius:8,padding:10,marginBottom:6,borderLeft:"3px solid "+ins.c}}><div style={{fontSize:11,fontWeight:600,marginBottom:2}}>{ins.t}</div><div style={{fontSize:11,color:T.sub,lineHeight:1.4}}>{"Because: "+ins.b}</div><div style={{fontSize:11,color:ins.c,fontWeight:600}}>{"Action: "+ins.a}</div></div>)}
     </Card>
   </div>);
@@ -1531,14 +1537,14 @@ function SurchargePage({setPage,selectedPort,clearPort,allowedTabs}){
           </Card>
           <Card>
             <div style={{fontSize:14,fontWeight:600,marginBottom:3}}>Rate Structure — {p.port} ({p.side})</div>
-            <div style={{fontSize:11,color:T.sub,marginBottom:8}}>Combined D&D rate vs separate Detention + Demurrage at this port side.</div>
+            <div style={{fontSize:11,color:T.sub,marginBottom:8}}>Bundled D&D rate vs separate Detention + Demurrage at this port side.</div>
             <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10,padding:"8px 12px",background:T.card2,borderRadius:8,border:"1px solid "+T.border}}>
               <div style={{fontSize:10,fontWeight:600,color:T.sub}}>Assume dwell:</div>
               <input type="number" min={1} max={60} placeholder={"Actual: "+combinedAvg.toFixed(1)+"d"} value={assumedDays===null?"":assumedDays} onChange={e=>{const v=parseInt(e.target.value);setAssumedDays(isNaN(v)||v<1?null:v);}} style={{width:80,border:"1.5px solid "+T.border,borderRadius:6,padding:"5px 8px",fontSize:12,fontWeight:600,outline:"none",background:"#fff",color:T.text}}/>
               {assumedDays!==null&&<button onClick={()=>setAssumedDays(null)} style={{padding:"4px 8px",borderRadius:5,border:"1px solid "+T.border,background:"#fff",color:T.sub,fontSize:9,cursor:"pointer"}}>Reset</button>}
             </div>
             <div style={{padding:"8px 12px",background:combinedSaves?T.greenBg:T.redBg,borderRadius:8,borderLeft:"3px solid "+(combinedSaves?T.green:T.red)}}>
-              <div style={{fontSize:11,fontWeight:600,color:combinedSaves?T.green:T.red,marginBottom:3}}>{combinedSaves?"✓ Recommend: Combined D&D":"✗ Recommend: Separate Rates"}</div>
+              <div style={{fontSize:11,fontWeight:600,color:combinedSaves?T.green:T.red,marginBottom:3}}>{combinedSaves?"✓ Recommend: Bundled D&D":"✗ Recommend: Separate Rates"}</div>
               <div style={{fontSize:11,color:T.text,lineHeight:1.5}}>{"At "+(assumedDays!==null?assumedDays+"d assumed":combinedAvg.toFixed(1)+"d avg")+", combined FP ("+combinedFP+"d) is "+(combinedSaves?"not exceeded — combined rate absorbs all charges at this port.":"exceeded — use separate rates to isolate which category breaches at this port.")}</div>
             </div>
           </Card>
